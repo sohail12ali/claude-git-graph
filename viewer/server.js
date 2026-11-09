@@ -59,7 +59,7 @@ const api = {
   async info({ repo }) {
     const root = await resolveRepo(repo)
     const [refs, cur, st, fp] = await Promise.all([
-      git(root, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes']),
+      git(root, ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes', 'refs/tags']),
       git(root, ['branch', '--show-current']),
       git(root, ['status', '--porcelain', '-uall']),
       fingerprint(root),
@@ -69,11 +69,15 @@ const api = {
       root, fp, current: first(cur.out), dirty: st.out.split('\n').filter(Boolean).length,
       local: names.filter(n => n.startsWith('refs/heads/')).map(n => n.slice(11)),
       remote: names.filter(n => n.startsWith('refs/remotes/') && !n.endsWith('/HEAD')).map(n => n.slice(13)),
+      tags: names.filter(n => n.startsWith('refs/tags/')).map(n => n.slice(10)),
     }
   },
-  async log({ repo, branch, remotes, n }) {
+  async log({ repo, branches, remotes, n }) {
     const root = await resolveRepo(repo)
-    const scope = branch ? [branch] : remotes === '0' ? ['--branches', '--tags', 'HEAD'] : ['--all']
+    let picked = []
+    try { picked = JSON.parse(branches || '[]') } catch {}
+    picked = (Array.isArray(picked) ? picked : []).filter(b => typeof b === 'string' && /^refs\/(heads|remotes|tags)\//.test(b) && NAME.test(b)).slice(0, 60)
+    const scope = picked.length ? picked : remotes === '0' ? ['--branches', '--tags', 'HEAD'] : ['--all']
     const r = await git(root, ['log', '--topo-order', '-n', String(Math.min(+n || 300, 5000)), '--date=short',
       '--format=%H%x1f%P%x1f%an%x1f%ar%x1f%ad%x1f%D%x1f%s', ...scope, '--'], 60000)
     if (r.code !== 0 && !/does not have any commits/.test(r.err)) throw new Error(first(r.err) || 'git log failed')

@@ -16,7 +16,14 @@ button{cursor:pointer}button:hover{border-color:var(--accent)}button.danger{colo
 .row:hover{background:var(--hover)}.row.sel{background:var(--sel)}
 .row svg{flex:none;display:block}
 .subj{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding-right:10px}
-.who,.date,.hash{flex:none;color:var(--dim);padding-left:10px}.who{width:130px;overflow:hidden;text-overflow:ellipsis}.date{width:84px}.hash{width:66px;font-family:ui-monospace,Menlo,monospace}
+:root{--ww:130px;--wd:84px;--wh:66px}
+.who,.date,.hash{flex:none;color:var(--dim);padding-left:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.who{width:var(--ww)}.date{width:var(--wd)}.hash{width:var(--wh);font-family:ui-monospace,Menlo,monospace}
+.g{flex:none;overflow:hidden;width:var(--gw,64px)}
+.hdr{position:sticky;top:var(--barh,48px);z-index:4;display:flex;align-items:center;height:24px;background:var(--bg);border-bottom:1px solid var(--line);color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.04em;user-select:none}
+.hdr>span{position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr .rs{position:absolute;top:0;bottom:0;width:8px;cursor:col-resize;z-index:2}.hdr .rs::after{content:"";position:absolute;top:4px;bottom:4px;left:3px;width:1px;background:var(--line)}.hdr .rs:hover::after,.hdr .rs.drag::after{background:var(--accent);width:2px;left:2px}
+.hdr .rs.r{right:0}.hdr .rs.l{left:0}
+body.resizing{cursor:col-resize;user-select:none}
 .badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;font-size:11px;line-height:17px;border:1px solid var(--line);vertical-align:1px}
 .badge.head{background:var(--accent);color:#fff;border-color:var(--accent)}.badge.tag{color:var(--warn);border-color:var(--warn)}.badge.remote{color:var(--dim)}.badge.local{border-color:var(--accent);color:var(--accent)}
 .detail{background:var(--panel);border:1px solid var(--line);border-radius:8px;margin:4px 0 10px;padding:12px 14px}
@@ -28,6 +35,9 @@ pre.diff{margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:6px
 pre.diff .a{color:var(--add)}pre.diff .d{color:var(--del)}pre.diff .h{color:var(--hunk)}
 .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}.actions input{width:170px}
 .empty{color:var(--dim);padding:24px 0}
+.brwrap{position:relative}#brpop{position:absolute;top:100%;left:0;z-index:40;margin-top:4px;width:300px;max-width:90vw;background:var(--bg);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:8px}
+#brpop[hidden]{display:none}#brpop input[type=text],#brq{width:100%}.bq{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap}.bl{max-height:320px;overflow:auto}
+.bi{display:flex;gap:6px;align-items:center;padding:2px 4px;border-radius:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bi:hover{background:var(--hover)}.bl .hd{color:var(--dim);font-size:11px;padding:6px 4px 2px}.bnote{color:var(--dim);font-size:11px}
 .ctx{position:fixed;z-index:30;background:var(--bg);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:4px;min-width:240px;max-width:340px}
 .ctx .it{padding:5px 10px;border-radius:4px;cursor:pointer;display:flex;gap:6px;align-items:center}.ctx .it:hover{background:var(--hover)}.ctx .it.danger{color:var(--del)}.ctx .it.armed{background:var(--del);color:#fff}.ctx .it.dis{opacity:.4;pointer-events:none}
 .ctx .sep{height:1px;background:var(--line);margin:4px 0}.ctx .hd{color:var(--dim);font-size:11px;padding:4px 10px 2px}.ctx input{flex:1;min-width:0}
@@ -68,7 +78,7 @@ a.lnk{color:var(--accent);cursor:pointer;text-decoration:underline}
   <button id="open">Open</button>
   <button id="head" title="Jump to HEAD (h)">HEAD</button>
   <select id="jump" title="Jump to a branch or tag"><option value="">Jump to…</option></select>
-  <select id="branch" title="Branch"></select>
+  <span class="brwrap"><button id="brbtn" title="Choose which branches to show">All branches ▾</button><div id="brpop" hidden></div></span>
   <label title="Show remote branches"><input id="remotes" type="checkbox" checked> Remotes</label>
   <input id="search" placeholder="Search message, author, hash, ref">
   <button id="refresh" title="Refresh (r)">Refresh</button>
@@ -84,6 +94,7 @@ h       jump to HEAD       Home / End   first / last loaded commit
 n / p   next / previous change in the diff     v   full-screen review
 Alt+←   back               Alt+→   forward (history of commits you opened)
 Click a parent hash in the details to walk down the history.
+Drag the column edges in the header row to resize; double-click an edge to reset it.
 Right-click a commit, a branch/tag label, or the Uncommitted row for git operations.</div></div>
 <div class="status"><span id="info"></span><span id="msg" class="msg"></span></div>
 <div id="rows" class="rows"></div>
@@ -93,7 +104,7 @@ Right-click a commit, a branch/tag label, or the Uncommitted row for git operati
 const TOKEN='__TOKEN__', PAL=['#2ea043','#388bfd','#a371f7','#d29922','#f0883e','#39c5cf','#db61a2','#7ee787'], LW=16, RH=26
 const $=id=>document.getElementById(id)
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
-const S={hist:[],hi:-1,repo:'',info:null,commits:[],rows:[],n:300,sel:'',detail:null,patch:null,mark:'',fp:'',query:''}
+const S={br:[],brq:'',hist:[],hi:-1,repo:'',info:null,commits:[],rows:[],n:300,sel:'',detail:null,patch:null,mark:'',fp:'',query:''}
 
 async function call(name,params={},post=false){
   const r=post?await fetch('/api/'+name,{method:'POST',headers:{'x-token':TOKEN,'content-type':'application/json'},body:JSON.stringify(params)})
@@ -151,18 +162,23 @@ function visible(){const q=S.query.trim().toLowerCase();return q?S.commits.map((
 function render(){
   const box=$('rows');const q=S.query.trim()
   const lay=S.layout,vis=visible();let h=''
+  const cw=S.cw||{};const root=document.documentElement.style
+  root.setProperty('--gw',(cw.gw||Math.min(lay.width*LW,260))+'px')
+  for(const [k,v] of [['ww','--ww'],['wd','--wd'],['wh','--wh']])root.setProperty(v,(cw[k]||({ww:130,wd:84,wh:66}[k]))+'px')
+  if(vis.length)h+=`<div class="hdr">${q?'':'<span class="g" style="width:var(--gw)">Graph<i class="rs r" data-col="gw" data-dir="1"></i></span>'}<span class="subj" style="flex:1 1 auto;min-width:0;padding-left:${q?4:0}px">Message</span><span class="who">Author<i class="rs l" data-col="ww" data-dir="-1"></i></span><span class="date">Date<i class="rs l" data-col="wd" data-dir="-1"></i></span><span class="hash">Commit<i class="rs l" data-col="wh" data-dir="-1"></i></span></div>`
   if(S.info&&S.info.dirty>0&&!q){
     const c0=lay.rows[0]?lay.rows[0].col:0,m=RH/2
-    h+=`<div class="row${S.sel==='WORKING'?' sel':''}" data-h="WORKING"><svg width="${lay.width*LW}" height="${RH}" fill="none" stroke-width="2" style="min-width:${lay.width*LW}px"><path d="M${X(c0)} ${m}V${RH}" stroke="var(--dim)" stroke-dasharray="3 3"/><circle cx="${X(c0)}" cy="${m}" r="4.5" fill="var(--bg)" stroke="var(--dim)"/></svg><span class="subj"><b>Uncommitted changes</b> <span style="color:var(--dim)">(${S.info.dirty} files)</span></span></div>`
+    h+=`<div class="row${S.sel==='WORKING'?' sel':''}" data-h="WORKING"><span class="g"><svg width="${lay.width*LW}" height="${RH}" fill="none" stroke-width="2" style="min-width:${lay.width*LW}px"><path d="M${X(c0)} ${m}V${RH}" stroke="var(--dim)" stroke-dasharray="3 3"/><circle cx="${X(c0)}" cy="${m}" r="4.5" fill="var(--bg)" stroke="var(--dim)"/></svg></span><span class="subj"><b>Uncommitted changes</b> <span style="color:var(--dim)">(${S.info.dirty} files)</span></span></div>`
     if(S.sel==='WORKING')h+=detailHtml()
   }
   for(const [c,i] of vis){
     const r=lay.rows[i],head=c.refs.some(x=>x.startsWith('HEAD'))
-    h+=`<div class="row${c.hash===S.sel?' sel':''}" data-h="${c.hash}">${q?'':graphSvg(r,lay.width,head)}<span class="subj" title="${esc(c.subject)}">${esc(c.subject)}${badges(c)}</span><span class="who" title="${esc(c.author)}">${esc(c.author)}</span><span class="date" title="${esc(c.when)}">${esc(c.date)}</span><span class="hash">${c.hash.slice(0,7)}</span></div>`
+    h+=`<div class="row${c.hash===S.sel?' sel':''}" data-h="${c.hash}">${q?'':`<span class="g">${graphSvg(r,lay.width,head)}</span>`}<span class="subj" title="${esc(c.subject)}">${esc(c.subject)}${badges(c)}</span><span class="who" title="${esc(c.author)}">${esc(c.author)}</span><span class="date" title="${esc(c.when)}">${esc(c.date)}</span><span class="hash">${c.hash.slice(0,7)}</span></div>`
     if(c.hash===S.sel)h+=detailHtml(c)
   }
   if(!vis.length&&!(S.info&&S.info.dirty>0))h='<div class="empty">No commits found.</div>'
   box.innerHTML=h
+  fixBar()
   fillJump();$('more').hidden=S.commits.length<S.n
   const i=S.info
   $('info').textContent=i?`${i.root} · ${i.current?'on '+i.current:'detached HEAD'} · ${vis.length}${q?'/'+S.commits.length:''} commits`:''
@@ -196,10 +212,10 @@ function detailHtml(c){
 }
 
 async function loadInfo(){S.info=await call('info',{repo:S.repo});S.repo=S.info.root;S.fp=S.info.fp;$('repo').value=S.repo
-  const sel=$('branch'),cur=sel.value,rm=$('remotes').checked
-  sel.innerHTML='<option value="">All branches</option>'+S.info.local.concat(rm?S.info.remote:[]).map(b=>`<option>${esc(b)}</option>`).join('')
-  sel.value=[...sel.options].some(o=>o.value===cur)?cur:''}
-async function loadLog(){S.commits=await call('log',{repo:S.repo,branch:$('branch').value,remotes:$('remotes').checked?'1':'0',n:S.n});S.layout=layout(S.commits)}
+  if(S._brRoot!==S.repo){S._brRoot=S.repo;try{S.br=JSON.parse(localStorage.getItem('gg-br:'+S.repo)||'[]')}catch{S.br=[]}}
+  const valid=new Set([...S.info.local.map(n=>'refs/heads/'+n),...S.info.remote.map(n=>'refs/remotes/'+n),...(S.info.tags||[]).map(n=>'refs/tags/'+n)])
+  S.br=S.br.filter(r=>valid.has(r)&&($('remotes').checked||!r.startsWith('refs/remotes/')));brLabel()}
+async function loadLog(){S.commits=await call('log',{repo:S.repo,branches:JSON.stringify(S.br),remotes:$('remotes').checked?'1':'0',n:S.n});S.layout=layout(S.commits)}
 async function refresh(keep){
   try{await loadInfo();await loadLog()
     if(S.sel&&S.sel!=='WORKING'&&!S.commits.some(c=>c.hash===S.sel)&&!(S.detail&&S.detail.base))S.sel=''
@@ -214,6 +230,7 @@ async function act(op,extra={}){try{const r=await call('act',{repo:S.repo,op,has
 
 $('rows').addEventListener('click',async ev=>{
   const t=ev.target
+  if(t.closest('.hdr'))return
   const btn=t.closest('button[data-a]')
   if(btn){const a=btn.dataset.a
     if(a==='copy'){try{await navigator.clipboard.writeText(S.sel);say('Copied '+S.sel.slice(0,7),true)}catch{say(S.sel,true)}return}
@@ -235,8 +252,7 @@ $('rows').addEventListener('click',async ev=>{
 })
 $('open').onclick=()=>{S.repo=$('repo').value.trim();S.sel='';S.detail=null;S.patch=null;S.n=300;try{localStorage.setItem('gg-repo',S.repo)}catch{};refresh()}
 $('repo').addEventListener('keydown',e=>{if(e.key==='Enter')$('open').click()})
-$('branch').onchange=()=>refresh()
-$('remotes').onchange=async()=>{$('branch').value='';await refresh()}
+$('remotes').onchange=async()=>{await refresh()}
 $('search').addEventListener('input',e=>{S.query=e.target.value;render()})
 $('refresh').onclick=()=>{say('');refresh()}
 $('fetch').onclick=()=>{say('Fetching…');act('fetch')}
@@ -299,6 +315,9 @@ function ctxItems(hash,badge){
   const c=S.commits.find(x=>x.hash===hash);if(!c)return items
   if(badge){const {kind,name}=badge.dataset
     hd(kind==='tag'?'Tag '+name:(kind==='remote'?'Remote branch ':'Branch ')+name)
+    if(kind==='local'||kind==='remote'){const ref=(kind==='local'?'refs/heads/':'refs/remotes/')+name
+      add('Show only this branch',()=>{S.br=[ref];brChanged()})
+      add(S.br.includes(ref)?'Remove from shown branches':'Add to shown branches',()=>{S.br=S.br.includes(ref)?S.br.filter(x=>x!==ref):[...S.br,ref];brChanged()})}
     if(kind==='local'){
       add('Checkout',()=>act('checkout',{name,hash:undefined}),{dis:name===cur})
       add('Merge into current branch',()=>act('merge',{hash}),{dis:name===cur})
@@ -482,6 +501,49 @@ $('review').addEventListener('click',ev=>{
 document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('[data-ff]')){S.ff=e.target.value;const q=S.ff.toLowerCase()
   document.querySelectorAll('.file').forEach(el=>{el.style.display=!q||el.dataset.file.toLowerCase().includes(q)?'':'none'})
   document.querySelectorAll('[data-ff]').forEach(i=>{if(i!==e.target)i.value=S.ff})}})
+
+// ---- multi-select branches ----
+const refName=r=>r.replace(/^refs\/(heads|remotes|tags)\//,'')
+function brLabel(){const n=S.br.length;$('brbtn').textContent=(n===0?'All branches':n===1?refName(S.br[0]):n+' branches')+' ▾'}
+function brAll(){const i=S.info||{local:[],remote:[],tags:[]};return {local:i.local.map(n=>'refs/heads/'+n),remote:$('remotes').checked?i.remote.map(n=>'refs/remotes/'+n):[],tags:(i.tags||[]).map(n=>'refs/tags/'+n)}}
+let brTimer
+function brChanged(){brLabel();try{localStorage.setItem('gg-br:'+S.repo,JSON.stringify(S.br))}catch{};clearTimeout(brTimer);brTimer=setTimeout(()=>refresh(),250)}
+function brList(){const all=brAll(),q=S.brq.toLowerCase()
+  const sec=(t,l)=>{l=l.filter(r=>refName(r).toLowerCase().includes(q));return l.length?`<div class="hd">${t}</div>`+l.map(r=>`<label class="bi" title="${esc(refName(r))}"><input type="checkbox" data-br="${esc(r)}"${S.br.includes(r)?' checked':''}> ${esc(refName(r))}</label>`).join(''):''}
+  return sec('Branches',all.local)+sec('Remote branches',all.remote)+sec('Tags',all.tags)||'<div class="empty" style="padding:8px">No match.</div>'}
+function brOpen(){const pop=$('brpop');S.brq=''
+  pop.innerHTML=`<input type="text" id="brq" placeholder="Filter branches…"><div class="bq"><button data-bra="all">Show all</button><button data-bra="local">Only local</button><button data-bra="sel">Selected: ${S.br.length}</button></div><div class="bnote">Tick several to compare them. Nothing ticked = all.</div><div class="bl">${brList()}</div>`
+  pop.hidden=false;pop.querySelector('#brq').focus()}
+$('brbtn').onclick=ev=>{ev.stopPropagation();$('brpop').hidden?brOpen():($('brpop').hidden=true)}
+$('brpop').addEventListener('click',ev=>ev.stopPropagation())
+$('brpop').addEventListener('input',ev=>{if(ev.target.id==='brq'){S.brq=ev.target.value;$('brpop').querySelector('.bl').innerHTML=brList()}})
+$('brpop').addEventListener('change',ev=>{const r=ev.target.dataset&&ev.target.dataset.br;if(!r)return
+  S.br=ev.target.checked?[...S.br,r]:S.br.filter(x=>x!==r);$('brpop').querySelector('[data-bra="sel"]').textContent='Selected: '+S.br.length;brChanged()})
+$('brpop').addEventListener('click',ev=>{const b=ev.target.closest('[data-bra]');if(!b)return;const k=b.dataset.bra
+  if(k==='all')S.br=[];else if(k==='local')S.br=brAll().local;else return
+  $('brpop').querySelector('.bl').innerHTML=brList();$('brpop').querySelector('[data-bra="sel"]').textContent='Selected: '+S.br.length;brChanged()})
+document.addEventListener('click',()=>{$('brpop').hidden=true})
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('brpop').hidden=true},true)
+
+// ---- resizable columns ----
+try{S.cw=JSON.parse(localStorage.getItem('gg-cols')||'{}')}catch{S.cw={}}
+const COLDEF={gw:null,ww:130,wd:84,wh:66},COLMIN={gw:32,ww:50,wd:60,wh:50},COLVAR={gw:'--gw',ww:'--ww',wd:'--wd',wh:'--wh'}
+function fixBar(){const b=document.querySelector('.bar');if(b)document.documentElement.style.setProperty('--barh',b.offsetHeight+'px')}
+addEventListener('resize',fixBar)
+$('rows').addEventListener('pointerdown',ev=>{
+  const hd=ev.target.closest('.rs');if(!hd)return
+  ev.preventDefault();ev.stopPropagation()
+  const col=hd.dataset.col,dir=+hd.dataset.dir,cell=hd.parentElement
+  const startX=ev.clientX,startW=cell.getBoundingClientRect().width-(col==='gw'?0:0)
+  hd.classList.add('drag');document.body.classList.add('resizing');hd.setPointerCapture(ev.pointerId)
+  const move=e=>{const w=Math.round(Math.max(COLMIN[col],Math.min(700,startW+dir*(e.clientX-startX))))
+    document.documentElement.style.setProperty(COLVAR[col],w+'px');S.cw[col]=w}
+  const up=()=>{hd.classList.remove('drag');document.body.classList.remove('resizing');hd.removeEventListener('pointermove',move);hd.removeEventListener('pointerup',up)
+    try{localStorage.setItem('gg-cols',JSON.stringify(S.cw))}catch{}}
+  hd.addEventListener('pointermove',move);hd.addEventListener('pointerup',up)
+})
+$('rows').addEventListener('dblclick',ev=>{const hd=ev.target.closest('.rs');if(!hd)return;ev.preventDefault();delete S.cw[hd.dataset.col]
+  try{localStorage.setItem('gg-cols',JSON.stringify(S.cw))}catch{};render()})
 
 const qs=new URLSearchParams(location.search)
 let start=qs.get('repo');if(!start){try{start=localStorage.getItem('gg-repo')}catch{}}

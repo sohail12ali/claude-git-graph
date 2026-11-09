@@ -2,23 +2,36 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Git Graph</title>
 <style>
-:root{--bg:#fff;--fg:#1f2328;--dim:#6e7781;--line:#d0d7de;--hover:#f3f4f6;--sel:#ddf4ff;--panel:#f6f8fa;--add:#1a7f37;--del:#cf222e;--hunk:#0969da;--warn:#9a6700;--btn:#fff;--accent:#0969da}
-@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--dim:#8b949e;--line:#30363d;--hover:#161b22;--sel:#12263f;--panel:#161b22;--add:#3fb950;--del:#f85149;--hunk:#58a6ff;--warn:#d29922;--btn:#21262d;--accent:#58a6ff}}
-*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+:root{color-scheme:light dark;--bg:#fff;--fg:#1f2328;--dim:#656d76;--line:#d0d7de;--hover:#f3f4f6;--sel:#ddf4ff;--panel:#f6f8fa;--add:#1a7f37;--del:#cf222e;--hunk:#0969da;--warn:#9a6700;--btn:#fff;--accent:#0969da;--on:#fff;--shadow:0 8px 28px rgba(0,0,0,.18)}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--dim:#8b949e;--line:#30363d;--hover:#161b22;--sel:#12263f;--panel:#161b22;--add:#3fb950;--del:#f85149;--hunk:#58a6ff;--warn:#d29922;--btn:#21262d;--accent:#58a6ff;--on:#0d1117;--shadow:0 8px 28px rgba(0,0,0,.5)}}
+*{box-sizing:border-box}[hidden]{display:none!important}html,body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 body{padding:0 16px 24px}
-.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 8px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 8px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.bar .grp{display:flex;gap:4px;align-items:center}
 input,select,button{font:inherit;color:var(--fg);background:var(--btn);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
-button{cursor:pointer}button:hover{border-color:var(--accent)}.ib{display:inline-flex;align-items:center;justify-content:center;width:30px;height:28px;padding:0}
+input[type=checkbox]{padding:0}
+button{cursor:pointer}button:hover{border-color:var(--accent);background:var(--hover)}.ib{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:28px;padding:0}
 .ib svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-button:disabled{opacity:.4;cursor:default}button:disabled:hover{border-color:var(--line)}
+.ib .cnt{position:absolute;top:-5px;right:-5px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:var(--accent);color:var(--on);font-size:10px;line-height:15px;text-align:center}
+.ib.on{background:var(--sel);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button:disabled{opacity:.4;cursor:default}button:disabled:hover{border-color:var(--line);background:var(--btn)}
 button.danger{color:var(--del)}button.armed{background:var(--del);color:#fff;border-color:var(--del)}
-#repo{flex:1 1 260px;min-width:0}#search{flex:1 1 160px;min-width:0}
-.status{color:var(--dim);padding:6px 0;display:flex;gap:12px;flex-wrap:wrap}.msg.ok{color:var(--add)}.msg.bad{color:var(--del)}
-.rows{margin-top:4px}
-.row{display:flex;align-items:center;height:26px;cursor:pointer;white-space:nowrap;border-radius:4px}
+button.busy{cursor:progress}button.busy svg{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+#repo{flex:1 1 220px;min-width:0}#search{flex:1 1 150px;min-width:0}
+.chk{display:inline-flex;gap:4px;align-items:center;white-space:nowrap;color:var(--dim)}
+.status{color:var(--dim);padding:6px 0;display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center;min-height:30px}
+.status .br{color:var(--fg);font-weight:600}.ab{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.chip{display:inline-flex;gap:4px;align-items:center;background:var(--sel);color:var(--fg);border:1px solid var(--accent);border-radius:12px;padding:0 4px 0 8px;font-size:12px;max-width:100%}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.chip button{border:0;background:none;padding:0 4px;line-height:18px;color:var(--dim)}.chip button:hover{color:var(--del);background:none}
+#filters{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}#filters label{display:inline-flex;gap:4px;align-items:center;color:var(--dim)}#filters input[type=text]{width:150px}
+.banner{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0;padding:8px 12px;border:1px solid var(--warn);border-radius:8px;background:color-mix(in srgb,var(--warn) 12%,var(--bg))}
+.banner b{color:var(--warn)}.banner .sp{flex:1}
+.rows{margin-top:2px}
+.row{display:flex;align-items:center;height:26px;cursor:pointer;white-space:nowrap;border-radius:4px;content-visibility:auto;contain-intrinsic-size:auto 26px}
 .row:hover{background:var(--hover)}.row.sel{background:var(--sel)}
 .row svg{flex:none;display:block}
-.subj{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding-right:10px}
+.subj{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding:0 10px 0 4px}
 :root{--ww:130px;--wd:84px;--wh:66px}
 .who,.date,.hash{flex:none;color:var(--dim);padding-left:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.who{width:var(--ww)}.date{width:var(--wd)}.hash{width:var(--wh);font-family:ui-monospace,Menlo,monospace}
 .g{flex:none;overflow:hidden;width:var(--gw,64px)}
@@ -27,33 +40,36 @@ button.danger{color:var(--del)}button.armed{background:var(--del);color:#fff;bor
 .hdr .rs{position:absolute;top:0;bottom:0;width:8px;cursor:col-resize;z-index:2}.hdr .rs::after{content:"";position:absolute;top:4px;bottom:4px;left:3px;width:1px;background:var(--line)}.hdr .rs:hover::after,.hdr .rs.drag::after{background:var(--accent);width:2px;left:2px}
 .hdr .rs.r{right:0}.hdr .rs.l{left:0}
 body.resizing{cursor:col-resize;user-select:none}
-.badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;font-size:11px;line-height:17px;border:1px solid var(--line);vertical-align:1px}
-.badge.head{background:var(--accent);color:#fff;border-color:var(--accent)}.badge.tag{color:var(--warn);border-color:var(--warn)}.badge.remote{color:var(--dim)}.badge.local{border-color:var(--accent);color:var(--accent)}
-.detail{background:var(--panel);border:1px solid var(--line);border-radius:8px;margin:4px 0 10px;padding:12px 14px}
-.detail h3{margin:0 0 6px;font-size:14px}.meta{color:var(--dim);font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:pre-wrap;margin-bottom:6px}
-.body{white-space:pre-wrap;margin:6px 0 10px}.files{margin:6px 0}
-.file{display:flex;gap:8px;padding:2px 6px;border-radius:4px;cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-size:12px}.file:hover{background:var(--hover)}.file.sel{background:var(--sel)}
-.st-A,.st-U{color:var(--add)}.st-D{color:var(--del)}.st-M,.st-R{color:var(--warn)}.nums{color:var(--dim);margin-left:auto}
-pre.diff{margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:6px;overflow:auto;max-height:420px;font:12px/1.45 ui-monospace,Menlo,monospace;background:var(--bg)}
-pre.diff .a{color:var(--add)}pre.diff .d{color:var(--del)}pre.diff .h{color:var(--hunk)}
-.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}.actions input{width:170px}
-.empty{color:var(--dim);padding:24px 0}
-.brwrap{position:relative}#brpop{position:absolute;top:100%;left:0;z-index:40;margin-top:4px;width:300px;max-width:90vw;background:var(--bg);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:8px}
-#brpop[hidden]{display:none}#brpop input[type=text],#brq{width:100%}.bq{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap}.bl{max-height:320px;overflow:auto}
-.bi{display:flex;gap:6px;align-items:center;padding:2px 4px;border-radius:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bi:hover{background:var(--hover)}.bl .hd{color:var(--dim);font-size:11px;padding:6px 4px 2px}.bnote{color:var(--dim);font-size:11px}
-.ctx{position:fixed;z-index:30;background:var(--bg);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:4px;min-width:240px;max-width:340px}
-.ctx .it{padding:5px 10px;border-radius:4px;cursor:pointer;display:flex;gap:6px;align-items:center}.ctx .it:hover{background:var(--hover)}.ctx .it.danger{color:var(--del)}.ctx .it.armed{background:var(--del);color:#fff}.ctx .it.dis{opacity:.4;pointer-events:none}
-.ctx .sep{height:1px;background:var(--line);margin:4px 0}.ctx .hd{color:var(--dim);font-size:11px;padding:4px 10px 2px}.ctx input{flex:1;min-width:0}
-
+.badge{display:inline-block;max-width:180px;overflow:hidden;text-overflow:ellipsis;margin-right:4px;padding:0 6px;border-radius:10px;font-size:11px;line-height:17px;border:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+.badge.head{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:600}.badge.tag{color:var(--warn);border-color:var(--warn)}.badge.remote{color:var(--dim)}.badge.local{border-color:var(--accent);color:var(--accent)}.badge.stash{border-style:dashed;color:var(--dim)}
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:8px;margin:4px 0 10px;padding:12px 14px;cursor:auto;min-width:0}
+.detail h3{margin:0 0 6px;font-size:14px;overflow-wrap:anywhere}.meta{color:var(--dim);font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:6px}
+.body{white-space:pre-wrap;overflow-wrap:anywhere;margin:6px 0 10px}.files{margin:6px 0}
+.dhead{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.file{display:flex;gap:8px;padding:2px 6px;border-radius:4px;cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-size:12px;align-items:center}.file:hover{background:var(--hover)}.file.sel{background:var(--sel)}
+.st-A,.st-U{color:var(--add)}.st-D{color:var(--del)}.st-M,.st-R{color:var(--warn)}.nums{color:var(--dim);margin-left:auto;white-space:nowrap}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}.actions input{width:170px;max-width:100%}
+.empty{color:var(--dim);padding:24px 0}.empty b{color:var(--fg)}
+.loading::before{content:"";display:inline-block;width:10px;height:10px;margin-right:8px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-1px}
+.pop{position:fixed;z-index:40;width:320px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:8px}
+#brq,.pop input[type=text]{width:100%}.bq{display:flex;gap:6px;margin:6px 0;flex-wrap:wrap}.bl{max-height:300px;overflow:auto}
+.bi{display:flex;gap:6px;align-items:center;padding:2px 4px;border-radius:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bi:hover{background:var(--hover)}.pop .hd{color:var(--dim);font-size:11px;padding:6px 4px 2px;text-transform:uppercase;letter-spacing:.04em}.bnote{color:var(--dim);font-size:11px}
+.cmp{display:grid;grid-template-columns:1fr auto 1fr;gap:4px;align-items:center;margin-top:4px}.cmp input{min-width:0}.cmp button{grid-column:1/-1}
+.sti{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px 4px;border-top:1px solid var(--line)}.sti .nm{flex:1 1 100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sti .nm small{color:var(--dim)}.sti button{padding:1px 8px}
+.ctx{position:fixed;z-index:60;background:var(--bg);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:4px;min-width:240px;max-width:min(360px,calc(100vw - 16px));max-height:calc(100vh - 16px);overflow:auto}
+.ctx .it{padding:5px 10px;border-radius:4px;cursor:pointer;display:flex;gap:6px;align-items:center;flex-wrap:wrap;outline:none}.ctx .it:hover,.ctx .it:focus{background:var(--hover)}.ctx .it.danger{color:var(--del)}.ctx .it.armed{background:var(--del);color:#fff}.ctx .it.dis{opacity:.4;pointer-events:none}
+.ctx .sep{height:1px;background:var(--line);margin:4px 0}.ctx .hd{color:var(--dim);font-size:11px;padding:4px 10px 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctx form{display:flex;flex-direction:column;gap:6px;padding:6px 10px;cursor:auto}.ctx form input[type=text]{width:100%}.ctx form .row2{display:flex;gap:6px;justify-content:flex-end;align-items:center}.ctx form .row2 label{margin-right:auto;color:var(--dim)}
 .fl{margin:6px 0}.filter{width:100%;margin:4px 0}
-.file{align-items:center}.fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fdir{color:var(--dim)}
-.pill{display:inline-block;width:18px;text-align:center;border-radius:4px;font-weight:700;font-size:11px;color:#fff;flex:none}
-.pill.A,.pill.U{background:var(--add)}.pill.D{background:var(--del)}.pill.M,.pill.R{background:var(--warn)}.pill.C{background:var(--hunk)}
-.nums{white-space:nowrap}.bar5{display:inline-flex;gap:1px;margin-left:6px;flex:none}.bar5 i{width:7px;height:7px;background:var(--line);display:block}.bar5 i.a{background:var(--add)}.bar5 i.d{background:var(--del)}
+.fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr}.fdir{color:var(--dim)}.fold{color:var(--dim);text-decoration:line-through}
+.pill{display:inline-block;width:18px;text-align:center;border-radius:4px;font-weight:700;font-size:11px;color:var(--on);flex:none}
+.pill.A,.pill.U{background:var(--add)}.pill.D,.pill.X{background:var(--del)}.pill.M,.pill.R,.pill.T{background:var(--warn)}.pill.C{background:var(--hunk)}
+.bar5{display:inline-flex;gap:1px;margin-left:6px;flex:none}.bar5 i{width:7px;height:7px;background:var(--line);display:block}.bar5 i.a{background:var(--add)}.bar5 i.d{background:var(--del)}
 .dv{margin:8px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg)}
 .dvh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line)}
-.dvh .path{font-weight:600;flex:1 1 200px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.seg{display:inline-flex}.seg button{border-radius:0;margin-left:-1px;padding:2px 8px}.seg button:first-child{border-radius:6px 0 0 6px;margin:0}.seg button:last-child{border-radius:0 6px 6px 0}.seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.dvh .path{font-weight:600;flex:1 1 160px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dvh button{padding:2px 8px}
+.seg{display:inline-flex}.seg button{border-radius:0;margin-left:-1px}.seg button:first-child{border-radius:6px 0 0 6px;margin:0}.seg button:last-child{border-radius:0 6px 6px 0}.seg button.on,.dvh button.on{background:var(--accent);color:var(--on);border-color:var(--accent)}
 .dvb{overflow:auto;max-height:560px}
 table.df{border-collapse:collapse;width:100%;font:12px/1.5 ui-monospace,Menlo,monospace}table.df.split{table-layout:fixed}
 table.df td{padding:0 6px;vertical-align:top}
@@ -66,56 +82,113 @@ td.cd.empty{background:var(--panel)}.sg{color:var(--dim);user-select:none;displa
 tr.hh td{background:color-mix(in srgb,var(--hunk) 14%,var(--bg));color:var(--hunk);cursor:pointer;padding:3px 10px;user-select:none}
 tbody.collapsed tr:not(.hh){display:none}tbody.collapsed tr.hh td::after{content:"  … collapsed";color:var(--dim)}
 tr.cur td.cd{box-shadow:inset 0 0 0 2px var(--accent)}
-#review{position:fixed;inset:0;z-index:25;background:var(--bg);display:flex;flex-direction:column}#review[hidden]{display:none}
-.rvh{display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.rvm{flex:1;display:grid;grid-template-columns:minmax(220px,340px) 1fr;min-height:0}
-.rvs{overflow:auto;border-right:1px solid var(--line);padding:8px 10px}.rvd{overflow:auto;padding:4px 12px 16px}
+.ovl{position:fixed;inset:0;z-index:25;background:var(--bg);display:flex;flex-direction:column}
+.rvh{display:flex;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}.rvh b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;max-width:100%}
+.rvm{flex:1;display:grid;grid-template-columns:minmax(200px,320px) 1fr;min-height:0}
+.rvs{overflow:auto;border-right:1px solid var(--line);padding:8px 10px}.rvd{overflow:auto;padding:4px 12px 16px;min-width:0}
 #review .dvb{max-height:none;overflow:visible}#review .dv{overflow:visible}#review .dvh{position:sticky;top:0;z-index:2}
+#raw .rvd{padding:0}#raw table.df td.cd{white-space:pre}
 @media(max-width:700px){.rvm{grid-template-columns:1fr;grid-template-rows:30vh 1fr}.rvs{border-right:0;border-bottom:1px solid var(--line)}}
 a.lnk{color:var(--accent);cursor:pointer;text-decoration:underline}
+#toasts{position:fixed;right:12px;bottom:12px;z-index:70;display:flex;flex-direction:column;gap:8px;align-items:flex-end;max-width:min(420px,calc(100vw - 24px));pointer-events:none}
+.toast{pointer-events:auto;display:flex;gap:8px;align-items:flex-start;background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--dim);border-radius:8px;box-shadow:var(--shadow);padding:8px 10px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:40vh;overflow:auto;animation:tin .15s ease-out}
+.toast.ok{border-left-color:var(--add)}.toast.bad{border-left-color:var(--del)}.toast.busy{border-left-color:var(--accent)}
+.toast .tx{flex:1;min-width:0}.toast .ta{display:flex;gap:6px;margin-top:6px}.toast .x{border:0;background:none;padding:0 2px;color:var(--dim);line-height:1}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+/* narrow panes: hide the least useful columns first */
+@media(max-width:720px){.who{display:none}}
+@media(max-width:560px){.date{display:none}.bar #search{flex-basis:100%}.hide-narrow{display:none}}
+@media(max-width:420px){.hash{display:none}body{padding:0 10px 20px}}
 </style></head>
 <body>
-<div class="bar">
-  <button id="back" class="ib" title="Back (Alt+←)" aria-label="Back" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button><button id="fwd" class="ib" title="Forward (Alt+→)" aria-label="Forward" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
-  <input id="repo" list="recent" placeholder="Path of a git folder" spellcheck="false"><datalist id="recent"></datalist>
+<div class="bar" role="toolbar" aria-label="Git Graph">
+  <span class="grp"><button id="back" class="ib" title="Back (Alt+←)" aria-label="Back" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button><button id="fwd" class="ib" title="Forward (Alt+→)" aria-label="Forward" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button></span>
+  <input id="repo" list="recent" placeholder="Path of a git folder" spellcheck="false" aria-label="Repository folder"><datalist id="recent"></datalist>
   <button id="open" class="ib" title="Open this folder" aria-label="Open folder"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg></button>
-  <button id="head" class="ib" title="Jump to HEAD (h)" aria-label="Jump to HEAD"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
-  <select id="jump" title="Jump to a branch or tag"><option value="">Jump to…</option></select>
-  <span class="brwrap"><button id="brbtn" title="Choose which branches to show">All branches ▾</button><div id="brpop" hidden></div></span>
-  <label title="Show remote branches"><input id="remotes" type="checkbox" checked> Remotes</label>
-  <input id="search" placeholder="Search message, author, hash, ref">
+  <span class="grp"><button id="head" class="ib" title="Jump to HEAD (h)" aria-label="Jump to HEAD"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
+  <select id="jump" title="Jump to a branch or tag" aria-label="Jump to a branch or tag" style="max-width:130px"><option value="">Jump to…</option></select></span>
+  <span class="brwrap"><button id="brbtn" title="Choose which branches to show, or compare two refs" aria-haspopup="true" aria-expanded="false" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">All branches ▾</button><div id="brpop" class="pop" hidden></div></span>
+  <label class="chk" title="Show remote branches"><input id="remotes" type="checkbox" checked> Remotes</label>
+  <input id="search" type="search" placeholder="Filter loaded · Enter: search history" aria-label="Search commits. Enter searches all history">
+  <span class="grp">
+  <button id="filt" class="ib" title="Filters: author, dates, merges" aria-label="Filters" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg></button>
   <button id="refresh" class="ib" title="Refresh (r)" aria-label="Refresh"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
-  <button id="pull" class="ib" title="Pull (git pull --ff-only)" aria-label="Pull"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg></button>
   <button id="fetch" class="ib" title="Fetch all remotes (git fetch --all --prune)" aria-label="Fetch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 13v8"/><path d="m8 17 4 4 4-4"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg></button>
-  <button id="help" class="ib" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button>
+  <button id="pull" class="ib" title="Pull (git pull --ff-only)" aria-label="Pull"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg></button>
+  <button id="push" class="ib" title="Push the current branch" aria-label="Push"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v14"/><path d="m6 13 6-6 6 6"/><path d="M19 3H5"/></svg></button>
+  <span class="stwrap"><button id="stbtn" class="ib" title="Stashes" aria-label="Stashes" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg></button><div id="stpop" class="pop" hidden></div></span>
+  <button id="help" class="ib" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button>
+  </span>
 </div>
-<div id="helpbox" class="detail" hidden><b>Keyboard</b><div class="meta">↓ / j   next commit        ↑ / k   previous commit
-Enter   open / close details   Esc   close details
+<div id="filters" hidden>
+  <label>Author <input id="f-author" type="text" placeholder="name or email" spellcheck="false"></label>
+  <label>From <input id="f-since" type="date"></label>
+  <label>To <input id="f-until" type="date"></label>
+  <label><input id="f-nomerge" type="checkbox"> Hide merge commits</label>
+  <button id="f-apply">Apply</button><button id="f-clear">Clear</button>
+</div>
+<div id="helpbox" class="detail helpbox" hidden><b>Keyboard</b><div class="meta">↓ / j   next commit        ↑ / k   previous commit
+Enter   open / close details   Esc   close details or dialogs
 h       jump to HEAD       Home / End   first / last loaded commit
 ] / [   next / previous file in the commit (shows its diff)
 /       search             r   refresh
 n / p   next / previous change in the diff     v   full-screen review
+Shift+F10 or Menu key   actions for the selected commit (arrows + Enter)
 Alt+←   back               Alt+→   forward (history of commits you opened)
+Typing in the search box filters the loaded commits; Enter searches all history.
 Click a parent hash in the details to walk down the history.
 Drag the column edges in the header row to resize; double-click an edge to reset it.
-Right-click a commit, a branch/tag label, or the Uncommitted row for git operations.</div></div>
-<div class="status"><span id="info"></span><span id="msg" class="msg"></span></div>
-<div id="rows" class="rows"></div>
-<div id="review" hidden></div>
+Right-click a commit, a branch/tag label, a file or the Uncommitted row for git operations.</div></div>
+<div id="banner"></div>
+<div class="status"><span id="info"></span><span id="chips" style="display:contents"></span></div>
+<div id="float"></div>
+<div id="rows" class="rows" aria-label="Commits"></div>
 <div id="more" class="empty" hidden><button id="loadmore">Load more commits</button></div>
+<div id="review" class="ovl" role="dialog" aria-modal="true" aria-label="Review changes" hidden></div>
+<div id="raw" class="ovl" role="dialog" aria-modal="true" aria-label="File contents" hidden></div>
+<div id="toasts" aria-live="polite"></div>
 <script>
 const TOKEN='__TOKEN__', PAL=['#2ea043','#388bfd','#a371f7','#d29922','#f0883e','#39c5cf','#db61a2','#7ee787'], LW=16, RH=26
 const $=id=>document.getElementById(id)
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
-const S={br:[],brq:'',hist:[],hi:-1,repo:'',info:null,commits:[],rows:[],n:300,sel:'',detail:null,patch:null,mark:'',fp:'',query:''}
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+const NOF=()=>({grep:'',author:'',since:'',until:'',nomerge:false,file:''})
+const S={br:[],brq:'',hist:[],hi:-1,repo:'',root:'',info:null,commits:[],byHash:new Map(),layout:{rows:[],width:1},n:300,
+  sel:'',last:'',detail:null,patch:null,mark:'',fp:'',query:'',F:NOF(),gen:0,dgen:0,pgen:0,loading:false,rc:new Map(),ff:'',chg:-1}
 
 async function call(name,params={},post=false){
-  const r=post?await fetch('/api/'+name,{method:'POST',headers:{'x-token':TOKEN,'content-type':'application/json'},body:JSON.stringify(params)})
-    :await fetch('/api/'+name+'?'+new URLSearchParams(params),{headers:{'x-token':TOKEN}})
-  const j=await r.json(); if(j.error) throw new Error(j.error); return j
+  let r
+  try{r=post?await fetch('/api/'+name,{method:'POST',headers:{'x-token':TOKEN,'content-type':'application/json'},body:JSON.stringify(params)})
+    :await fetch('/api/'+name+'?'+new URLSearchParams(params),{headers:{'x-token':TOKEN}})}
+  catch{throw new Error('The viewer server is not responding. Run /git-graph again to restart it.')}
+  let j;try{j=await r.json()}catch{throw new Error('Unexpected reply from the viewer server ('+r.status+')')}
+  if(r.status===403&&j&&j.error==='bad token'){staleToken();throw new Error('The viewer server was restarted: reload this page.')}
+  if(j&&j.error)throw new Error(j.error);return j
 }
-function say(t,ok){const m=$('msg');m.textContent=t||'';m.className='msg '+(ok===undefined?'':ok?'ok':'bad')}
+let staleShown=false
+function staleToken(){if(staleShown)return;staleShown=true;toast('The viewer server was restarted, so this page can no longer talk to it.','bad',{actions:[{label:'Reload page',fn:()=>location.reload()}]})}
 
+// ---- toasts ----
+function toast(text,kind='',o={}){
+  const el=document.createElement('div');el.className='toast '+kind;el.setAttribute('role',kind==='bad'?'alert':'status')
+  const tx=document.createElement('div');tx.className='tx';el.append(tx)
+  const x=document.createElement('button');x.className='x';x.textContent='✕';x.title='Dismiss';x.setAttribute('aria-label','Dismiss');el.append(x)
+  let timer;const close=()=>{clearTimeout(timer);el.remove()};x.onclick=close
+  const set=(t,k,acts)=>{tx.textContent=t;el.className='toast '+(k||'')+(k==='busy'?' loading':'')
+    if(acts&&acts.length){const a=document.createElement('div');a.className='ta';for(const b of acts){const bt=document.createElement('button');bt.textContent=b.label;bt.onclick=()=>{close();b.fn()};a.append(bt)};tx.append(a)}
+    clearTimeout(timer);if(k!=='busy')timer=setTimeout(close,acts&&acts.length?20000:k==='bad'?10000:3500)}
+  set(text,kind,o.actions);$('toasts').append(el)
+  while($('toasts').children.length>5)$('toasts').firstChild.remove()
+  return {update:(t,k,acts)=>set(t,k,acts),close}
+}
+const say=(t,ok)=>t&&toast(t,ok===undefined?'':ok?'ok':'bad')
+async function copy(text,what){
+  try{await navigator.clipboard.writeText(text)}catch{
+    const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';document.body.append(ta);ta.select()
+    let ok=false;try{ok=document.execCommand('copy')}catch{};ta.remove();if(!ok){say('Could not copy to the clipboard',false);return}}
+  say('Copied '+what,true)}
+
+// ---- graph layout: one lane per open line of history ----
 function layout(commits){
   let lanes=[],colors=[],next=0;const rows=[];let max=1
   for(const c of commits){
@@ -140,259 +213,431 @@ function layout(commits){
   return {rows,width:max}
 }
 const X=i=>i*LW+LW/2
+// Lanes beyond the visible Graph column are clipped anyway, so they aren't drawn at all:
+// a wide history (100+ lanes) would otherwise cost hundreds of thousands of SVG paths.
+const laneCap=()=>Math.ceil((S.cw&&S.cw.gw||260)/LW)+1
 function graphSvg(r,width,head){
-  const w=width*LW,m=RH/2,p=[]
+  const cap=laneCap(),w=Math.min(width,cap)*LW,m=RH/2,p=[],ok=i=>i<cap
+  r={col:r.col,color:r.color,top:r.top.filter(t=>ok(t.i)||ok(r.col)),pass:r.pass.filter(t=>ok(t.i)),out:r.out.filter(o=>ok(o.to)||ok(r.col))}
   for(const t of r.top)p.push(t.i===r.col?`<path d="M${X(t.i)} 0V${m}" stroke="${PAL[t.color]}"/>`:`<path d="M${X(t.i)} 0C${X(t.i)} ${m} ${X(r.col)} 0 ${X(r.col)} ${m}" stroke="${PAL[t.color]}"/>`)
   for(const s of r.pass)p.push(`<path d="M${X(s.i)} 0V${RH}" stroke="${PAL[s.color]}"/>`)
   for(const o of r.out)p.push(o.to===r.col?`<path d="M${X(r.col)} ${m}V${RH}" stroke="${PAL[o.color]}"/>`:`<path d="M${X(r.col)} ${m}C${X(r.col)} ${RH} ${X(o.to)} ${m} ${X(o.to)} ${RH}" stroke="${PAL[o.color]}"/>`)
-  p.push(`<circle cx="${X(r.col)}" cy="${m}" r="${head?5.5:4.5}" fill="${PAL[r.color]}" ${head?'stroke="var(--fg)" stroke-width="2"':'stroke="var(--bg)" stroke-width="1.5"'}/>`)
-  return `<svg width="${w}" height="${RH}" fill="none" stroke-width="2" style="min-width:${w}px">${p.join('')}</svg>`
+  if(r.col<cap)p.push(`<circle cx="${X(r.col)}" cy="${m}" r="${head?5.5:4.5}" fill="${PAL[r.color]}" ${head?'stroke="var(--fg)" stroke-width="2"':'stroke="var(--bg)" stroke-width="1.5"'}/>`)
+  return `<svg width="${w}" height="${RH}" fill="none" stroke-width="2" style="min-width:${w}px" aria-hidden="true">${p.join('')}</svg>`
 }
 function badges(c){
-  const i=S.info||{local:[],remote:[],current:''}
+  const i=S.info||{remote:[]},rem=S.remSet||new Set(i.remote)
   return c.refs.map(r=>{
-    let cls='local',label=r,isHead=false
-    if(r.startsWith('HEAD -> ')){label=r.slice(8);cls='head';isHead=true}
+    let cls='local',label=r
+    if(r.startsWith('HEAD -> ')){label=r.slice(8);cls='head'}
     else if(r==='HEAD'){cls='head'}
     else if(r.startsWith('tag: ')){cls='tag';label=r.slice(5)}
-    else if(i.remote.includes(r))cls='remote'
+    else if(rem.has(r))cls='remote'
+    else if(r==='refs/stash')return ''
     const kind=r==='HEAD'?'':cls==='tag'?'tag':cls==='remote'?'remote':'local'
-    return `<span class="badge ${cls}"${kind?` data-kind="${kind}" data-name="${esc(label)}"`:''}>${esc(label)}</span>`
+    return `<span class="badge ${cls}" title="${esc((cls==='tag'?'tag ':cls==='remote'?'remote ':cls==='head'&&label!=='HEAD'?'HEAD → ':'')+label)}"${kind?` data-kind="${kind}" data-name="${esc(label)}"`:''}>${esc(label)}</span>`
   }).join('')
 }
-function visible(){const q=S.query.trim().toLowerCase();return q?S.commits.map((c,i)=>[c,i]).filter(([c])=>`${c.subject} ${c.author} ${c.hash} ${c.refs.join(' ')}`.toLowerCase().includes(q)):S.commits.map((c,i)=>[c,i])}
-
-function render(){
-  const box=$('rows');const q=S.query.trim()
-  const lay=S.layout,vis=visible();let h=''
-  const cw=S.cw||{};const root=document.documentElement.style
-  root.setProperty('--gw',(cw.gw||Math.min(lay.width*LW,260))+'px')
-  for(const [k,v] of [['ww','--ww'],['wd','--wd'],['wh','--wh']])root.setProperty(v,(cw[k]||({ww:130,wd:84,wh:66}[k]))+'px')
-  if(vis.length)h+=`<div class="hdr">${q?'':'<span class="g" style="width:var(--gw)">Graph<i class="rs r" data-col="gw" data-dir="1"></i></span>'}<span class="subj" style="flex:1 1 auto;min-width:0;padding-left:${q?4:0}px">Message</span><span class="who">Author<i class="rs l" data-col="ww" data-dir="-1"></i></span><span class="date">Date<i class="rs l" data-col="wd" data-dir="-1"></i></span><span class="hash">Commit<i class="rs l" data-col="wh" data-dir="-1"></i></span></div>`
-  if(S.info&&S.info.dirty>0&&!q){
-    const c0=lay.rows[0]?lay.rows[0].col:0,m=RH/2
-    h+=`<div class="row${S.sel==='WORKING'?' sel':''}" data-h="WORKING"><span class="g"><svg width="${lay.width*LW}" height="${RH}" fill="none" stroke-width="2" style="min-width:${lay.width*LW}px"><path d="M${X(c0)} ${m}V${RH}" stroke="var(--dim)" stroke-dasharray="3 3"/><circle cx="${X(c0)}" cy="${m}" r="4.5" fill="var(--bg)" stroke="var(--dim)"/></svg></span><span class="subj"><b>Uncommitted changes</b> <span style="color:var(--dim)">(${S.info.dirty} files)</span></span></div>`
-    if(S.sel==='WORKING')h+=detailHtml()
-  }
-  for(const [c,i] of vis){
-    const r=lay.rows[i],head=c.refs.some(x=>x.startsWith('HEAD'))
-    h+=`<div class="row${c.hash===S.sel?' sel':''}" data-h="${c.hash}">${q?'':`<span class="g">${graphSvg(r,lay.width,head)}</span>`}<span class="subj" title="${esc(c.subject)}">${esc(c.subject)}${badges(c)}</span><span class="who" title="${esc(c.author)}">${esc(c.author)}</span><span class="date" title="${esc(c.when)}">${esc(c.date)}</span><span class="hash">${c.hash.slice(0,7)}</span></div>`
-    if(c.hash===S.sel)h+=detailHtml(c)
-  }
-  if(!vis.length&&!(S.info&&S.info.dirty>0))h='<div class="empty">No commits found.</div>'
-  box.innerHTML=h
-  fixBar()
-  fillJump();$('more').hidden=S.commits.length<S.n
-  const i=S.info
-  $('info').textContent=i?`${i.root} · ${i.current?'on '+i.current:'detached HEAD'} · ${vis.length}${q?'/'+S.commits.length:''} commits`:''
+const serverFiltered=()=>{const F=S.F;return !!(F.grep||F.author||F.since||F.until||F.nomerge||F.file)}
+const graphHidden=()=>!!S.query.trim()||serverFiltered()
+function visible(){const q=S.query.trim().toLowerCase(),all=S.commits.map((c,i)=>[c,i]);return q?all.filter(([c])=>`${c.subject} ${c.author} ${c.hash} ${c.refs.join(' ')}`.toLowerCase().includes(q)):all}
+const isHead=c=>c.refs.some(x=>x==='HEAD'||x.startsWith('HEAD -> '))
+function rowHtml(c,i,noG){
+  const key=(noG?'n':'g'+laneCap())+c.hash;let h=S.rc.get(key);if(h)return h
+  h=`<div class="row" data-h="${c.hash}">${noG?'':`<span class="g">${graphSvg(S.layout.rows[i],S.layout.width,isHead(c))}</span>`}<span class="subj" title="${esc(c.subject)}">${badges(c)}${esc(c.subject)}</span><span class="who" title="${esc(c.author)}">${esc(c.author)}</span><span class="date" title="${esc(c.when)}">${esc(c.date)}</span><span class="hash">${c.hash.slice(0,7)}</span></div>`
+  S.rc.set(key,h);return h
 }
 
+function render(){
+  const box=$('rows'),lay=S.layout,vis=visible(),noG=graphHidden(),i=S.info
+  const cw=S.cw||{},root=document.documentElement.style
+  root.setProperty('--gw',(cw.gw||Math.min(lay.width*LW+4,260))+'px')
+  for(const [k,v] of [['ww','--ww'],['wd','--wd'],['wh','--wh']])root.setProperty(v,(cw[k]||({ww:130,wd:84,wh:66}[k]))+'px')
+  let h=''
+  const dirtyRow=i&&i.dirty>0&&!noG
+  if(vis.length||dirtyRow)h+=`<div class="hdr">${noG?'':'<span class="g">Graph<i class="rs r" data-col="gw" data-dir="1"></i></span>'}<span class="subj">Message</span><span class="who">Author<i class="rs l" data-col="ww" data-dir="-1"></i></span><span class="date">Date<i class="rs l" data-col="wd" data-dir="-1"></i></span><span class="hash">Commit<i class="rs l" data-col="wh" data-dir="-1"></i></span></div>`
+  if(dirtyRow){
+    const hi=S.commits.findIndex(isHead),c0=lay.rows[hi<0?0:hi]?lay.rows[hi<0?0:hi].col:0,m=RH/2,w=lay.width*LW
+    h+=`<div class="row" data-h="WORKING"><span class="g"><svg width="${w}" height="${RH}" fill="none" stroke-width="2" style="min-width:${w}px" aria-hidden="true">${S.commits.length?`<path d="M${X(c0)} ${m}V${RH}" stroke="var(--dim)" stroke-dasharray="3 3"/>`:''}<circle cx="${X(c0)}" cy="${m}" r="4.5" fill="var(--bg)" stroke="var(--dim)"/></svg></span><span class="subj"><b>Uncommitted changes</b> <span style="color:var(--dim)">(${i.dirty} file${i.dirty===1?'':'s'}${i.conflicts?`, <span style="color:var(--del)">${i.conflicts} conflicted</span>`:''})</span></span></div>`
+  }
+  const parts=[];for(const [c,k] of vis)parts.push(rowHtml(c,k,noG));h+=parts.join('')
+  if(!vis.length&&!dirtyRow){
+    if(!i)h=''
+    else if(S.query.trim()&&S.commits.length)h=`<div class="empty">No loaded commit matches “${esc(S.query.trim())}”. <button data-grep>Search all history</button></div>`
+    else if(serverFiltered())h='<div class="empty">No commits match the filters. <button data-clearf>Clear filters</button></div>'
+    else if(!i.head)h='<div class="empty"><b>This repository has no commits yet.</b><br>Make a first commit and it will appear here.</div>'
+    else h='<div class="empty">No commits found for the selected branches. <button data-allbr>Show all branches</button></div>'
+  }
+  box.innerHTML=h
+  paintDetail();renderStatus();fillJump()
+  $('more').hidden=S.commits.length<S.n
+  $('loadmore').disabled=false;$('loadmore').textContent='Load more commits'
+}
+function renderStatus(){
+  const i=S.info;if(!i){$('info').textContent='';$('chips').innerHTML='';$('banner').innerHTML='';return}
+  const vis=S.query.trim()?visible().length:S.commits.length,up=i.current&&i.upstream[i.current]
+  let s=`<span title="${esc(i.root)}">${esc(i.root.split('/').pop()||i.root)}</span> · `
+  s+=i.current?`on <span class="br">${esc(i.current)}</span>`:'<span class="br">detached HEAD</span>'
+  if(up)s+=up.gone?` <span title="The upstream branch was deleted">(upstream ${esc(up.up)} gone)</span>`:` <span class="ab" title="Ahead / behind ${esc(up.up)}">${up.ahead?'↑'+up.ahead:''}${up.behind?' ↓'+up.behind:''}${!up.ahead&&!up.behind?'✓':''}</span> <span class="hide-narrow">${esc(up.up)}</span>`
+  else if(i.current&&i.remotes.length)s+=' <span class="hide-narrow" title="This branch has no upstream branch">(no upstream)</span>'
+  s+=` · ${vis}${S.query.trim()?'/'+S.commits.length:''} commit${vis===1?'':'s'}`
+  if(i.shallow)s+=' · <span title="Shallow clone: older history is not available locally">shallow</span>'
+  $('info').innerHTML=s
+  const F=S.F,ch=[]
+  const chip=(k,t)=>ch.push(`<span class="chip"><span title="${esc(t)}">${esc(t)}</span><button data-unf="${k}" aria-label="Remove filter ${esc(t)}">✕</button></span>`)
+  if(F.file)chip('file','History of '+F.file);if(F.grep)chip('grep','Message: '+F.grep);if(F.author)chip('author','Author: '+F.author)
+  if(F.since)chip('since','From '+F.since);if(F.until)chip('until','To '+F.until);if(F.nomerge)chip('nomerge','No merges')
+  $('chips').innerHTML=ch.join('')+(ch.length>1?'<button data-unf="all">Clear all</button>':'')
+  $('stbtn').querySelector('.cnt')?.remove();if(i.stashes.length)$('stbtn').insertAdjacentHTML('beforeend',`<span class="cnt">${i.stashes.length}</span>`)
+  const st=i.state,names={merge:'Merge','rebase':'Rebase','cherry-pick':'Cherry-pick',revert:'Revert',am:'Patch apply (git am)'}
+  $('banner').innerHTML=st?`<div class="banner" role="status"><b>${names[st]} in progress</b><span>${i.conflicts?`${i.conflicts} conflicted file${i.conflicts===1?'':'s'}: resolve them, then stage the files.`:'No conflicts left: you can continue.'}</span><span class="sp"></span>
+    <button data-op="continue" data-kind="${st}"${i.conflicts?' disabled title="Resolve the conflicts first"':''}>Continue</button>${st!=='merge'?`<button data-op="skip" data-kind="${st}">Skip</button>`:''}<button class="danger" data-op="abort" data-kind="${st}">Abort</button></div>`:''
+}
+
+// ---- details (painted in place, so opening a commit doesn't rebuild the whole list) ----
+const stashOf=h=>S.info&&S.info.stashes.find(s=>s.hash===h)
+function paintDetail(){
+  for(const el of document.querySelectorAll('#rows .detail'))el.remove()
+  for(const el of document.querySelectorAll('#rows .row.sel')){el.classList.remove('sel');el.removeAttribute('aria-selected')}
+  $('float').innerHTML=''
+  if(!S.sel)return
+  const row=document.querySelector(`#rows .row[data-h="${S.sel}"]`)
+  const html=detailHtml(S.byHash.get(S.sel))
+  if(row){row.classList.add('sel');row.setAttribute('aria-selected','true');row.insertAdjacentHTML('afterend',html)}
+  else $('float').innerHTML=html
+}
 function detailHtml(c){
-  const d=S.detail;if(!d||d.hash!==S.sel)return '<div class="detail">Loading…</div>'
-  const m=d.meta||{},files=d.files||[]
-  const adds=files.reduce((s,f)=>s+Math.max(f.add,0),0),dels=files.reduce((s,f)=>s+Math.max(f.del,0),0)
-  let h=`<div class="detail" data-detail="${d.hash}"><h3>${esc(d.title||'(no message)')}</h3>`
-  if(m.full)h+=`<div class="meta">Commit:  ${esc(m.full)}\nParents: ${m.parents.length?m.parents.map(x=>`<a class="lnk" data-goto="${x}">${x.slice(0,7)}</a>`).join(' '):'(root)'}\nAuthor:  ${esc(m.author)} &lt;${esc(m.email)}&gt;\nDate:    ${esc(m.date)}${m.committer&&m.author!==m.committer?'  (committed by '+esc(m.committer)+')':''}</div>`
+  const d=S.detail;if(!d||d.hash!==S.sel)return '<div class="detail loading">Loading…</div>'
+  const m=d.meta||{},files=d.files||[],st=stashOf(d.hash)
+  if(!c&&!d.base&&d.hash!=='WORKING')c={hash:d.hash,refs:[],subject:d.title,parents:m.parents||[],floating:true}
+  const adds=files.reduce((s,f)=>s+Math.max(f.add||0,0),0),dels=files.reduce((s,f)=>s+Math.max(f.del||0,0),0)
+  let h=`<div class="detail" data-detail="${d.hash}">`
+  if(st)h+=`<div class="meta">${esc(st.name)} · ${esc(st.when)}</div>`
+  else if(c&&c.floating)h+=`<div class="meta">${serverFiltered()||S.query.trim()?'Not in the filtered list':'Not in the loaded commits'}</div>`
+  h+=`<h3>${esc(d.title||'(no message)')}</h3>`
+  if(m.full)h+=`<div class="meta">Commit:  ${esc(m.full)}\nParents: ${m.parents.length?m.parents.map(x=>`<a class="lnk" data-goto="${esc(x)}" title="Open the parent commit">${esc(x.slice(0,7))}</a>`).join(' '):'(root)'}\nAuthor:  ${esc(m.author)} &lt;${esc(m.email)}&gt;\nDate:    ${esc(m.date)}${m.committer&&m.author!==m.committer?'  (committed by '+esc(m.committer)+')':''}</div>`
   if(d.message)h+=`<div class="body">${esc(d.message)}</div>`
-  h+=`<div><b>${files.length} file${files.length===1?'':'s'} changed</b> <span style="color:var(--add)">+${adds}</span> <span style="color:var(--del)">−${dels}</span> <button data-rv title="Open the full-screen review (v)">Review changes ⤢</button></div><div class="files">`
-  h+=fileListHtml(files)
-  h+='</div>'
+  h+=`<div class="dhead"><b>${files.length} file${files.length===1?'':'s'} changed</b> <span><span class="st-A">+${adds}</span> <span class="st-D">−${dels}</span></span>${files.length?'<button data-rv title="Open the full-screen review (v)">Review changes ⤢</button>':''}<button data-a="patch" title="Copy these changes as a patch">Copy patch</button>${m.parents&&m.parents.length>1?'<span style="color:var(--dim)">(merge: changes against the first parent)</span>':''}</div>`
+  h+=files.length?`<div class="files">${fileListHtml(files)}</div>`:'<div class="empty" style="padding:8px 0">No file changes.</div>'
   h+=diffViewHtml()
-  if(d.hash!=='WORKING'&&c){
+  if(st){
+    h+=`<div class="actions"><button data-a="stash-apply" data-name="${esc(st.name)}">Apply</button><button data-a="stash-pop" data-name="${esc(st.name)}">Pop</button><button class="danger" data-a="stash-drop" data-name="${esc(st.name)}">Drop</button></div>`
+  }else if(d.hash!=='WORKING'&&c&&!d.base&&S.info){
     const cur=S.info.current,locals=S.info.local.filter(b=>c.refs.some(r=>r===b||r==='HEAD -> '+b))
     const tags=c.refs.filter(r=>r.startsWith('tag: ')).map(r=>r.slice(5))
     h+=`<div class="actions"><button data-a="copy">Copy hash</button><button data-a="checkout">Checkout (detached)</button>`
     for(const b of locals)h+=`<button data-a="checkout-b" data-name="${esc(b)}"${b===cur?' disabled':''}>Checkout ${esc(b)}</button>`
     h+=`<button data-a="cherry-pick">Cherry-pick</button><button data-a="revert">Revert</button><button data-a="merge">Merge into current</button>`
     h+=`<button data-a="mark">${S.mark===d.hash?'Marked ✓':'Mark for compare'}</button>`
-    if(S.mark&&S.mark!==d.hash)h+=`<button data-a="compare">Compare with ${S.mark.slice(0,7)}</button>`
+    if(S.mark&&S.mark!==d.hash)h+=`<button data-a="compare">Compare with ${esc(S.mark.slice(0,7))}</button>`
     h+=`</div><div class="actions"><button class="danger" data-a="reset" data-mode="--soft">Reset soft</button><button class="danger" data-a="reset" data-mode="--mixed">Reset mixed</button><button class="danger" data-a="reset" data-mode="--hard">Reset hard</button>`
     for(const b of locals.filter(b=>b!==cur))h+=`<button class="danger" data-a="delete-branch" data-name="${esc(b)}">Delete ${esc(b)}</button>`
     for(const t of tags)h+=`<button class="danger" data-a="delete-tag" data-name="${esc(t)}">Delete tag ${esc(t)}</button>`
-    h+=`</div><div class="actions"><input id="newbranch" placeholder="new-branch-name"><button data-a="branch">Create branch here</button><input id="newtag" placeholder="tag-name"><button data-a="tag">Add tag here</button></div>`
+    h+=`</div><div class="actions"><input id="newbranch" placeholder="new-branch-name" aria-label="New branch name" spellcheck="false"><button data-a="branch">Create branch here</button><input id="newtag" placeholder="tag-name" aria-label="Tag name" spellcheck="false"><button data-a="tag">Add tag here</button></div>`
+  }else if(d.hash==='WORKING'){
+    h+=`<div class="actions"><button data-a="stash">Stash changes</button><button class="danger" data-a="reset-head">Discard tracked changes</button></div>`
   }
   return h+'</div>'
 }
 
-async function loadInfo(){S.info=await call('info',{repo:S.repo});S.repo=S.info.root;S.fp=S.info.fp;$('repo').value=S.repo
-  if(S._brRoot!==S.repo){S._brRoot=S.repo;try{S.br=JSON.parse(localStorage.getItem('gg-br:'+S.repo)||'[]')}catch{S.br=[]}}
-  const valid=new Set([...S.info.local.map(n=>'refs/heads/'+n),...S.info.remote.map(n=>'refs/remotes/'+n),...(S.info.tags||[]).map(n=>'refs/tags/'+n)])
-  S.br=S.br.filter(r=>valid.has(r)&&($('remotes').checked||!r.startsWith('refs/remotes/')));brLabel()}
-async function loadLog(){S.commits=await call('log',{repo:S.repo,branches:JSON.stringify(S.br),remotes:$('remotes').checked?'1':'0',n:S.n});S.layout=layout(S.commits)}
-async function refresh(keep){
-  try{await loadInfo();await loadLog()
-    if(S.sel&&S.sel!=='WORKING'&&!S.commits.some(c=>c.hash===S.sel)&&!(S.detail&&S.detail.base))S.sel=''
-    if(S.sel)S.detail=await call('commit',{repo:S.repo,hash:S.sel,base:S.detail&&S.detail.base||''})
-    remember(S.repo);render()}catch(e){S.info=null;S.commits=[];S.layout={rows:[],width:1};render();$('rows').innerHTML=`<div class="empty">${esc(e.message)}</div>`;$('info').textContent=''}
+// ---- loading, with generation counters so a slow reply can't overwrite a newer one ----
+function logParams(){const F=S.F;return {repo:S.repo,branches:JSON.stringify(S.br),remotes:$('remotes').checked?'1':'0',n:S.n,grep:F.grep,author:F.author,since:F.since,until:F.until,nomerge:F.nomerge?'1':'',file:F.file}}
+function resetRepo(root){
+  Object.assign(S,{root,sel:'',last:'',detail:null,patch:null,mark:'',hist:[],hi:-1,F:NOF(),ff:'',n:300,query:''});$('search').value='';fillFilterForm()
+  try{S.br=JSON.parse(localStorage.getItem('gg-br:'+root)||'[]')}catch{S.br=[]}
+  closeReview();closeRaw();nav()
+  try{const u=new URL(location.href);u.searchParams.set('repo',root);history.replaceState(null,'',u)}catch{}
 }
-async function open(hash,base='',rec=true){
-  if(rec&&S.hist[S.hi]!==hash+'|'+base){S.hist=S.hist.slice(0,S.hi+1);S.hist.push(hash+'|'+base);S.hi=S.hist.length-1}
-  nav();S.sel=hash;S.patch=null;S.detail=null;render()
-  try{S.detail=await call('commit',{repo:S.repo,hash,base});render();document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'})}catch(e){say(e.message,false)}}
-async function act(op,extra={}){try{const r=await call('act',{repo:S.repo,op,hash:S.sel,...extra},true);say(r.message,r.ok);await refresh()}catch(e){say(e.message,false)}}
+async function refresh(){
+  const g=++S.gen;S.loading=true
+  if(!S.info)$('rows').innerHTML='<div class="empty loading">Loading…</div>'
+  try{
+    const info=await call('info',{repo:S.repo});if(g!==S.gen)return
+    if(info.root!==S.root)resetRepo(info.root)
+    S.info=info;S.repo=info.root;S.fp=info.fp;$('repo').value=S.repo;S.remSet=new Set(info.remote)
+    const valid=new Set([...info.local.map(n=>'refs/heads/'+n),...info.remote.map(n=>'refs/remotes/'+n),...info.tags.map(n=>'refs/tags/'+n)])
+    S.br=S.br.filter(r=>valid.has(r)&&($('remotes').checked||!r.startsWith('refs/remotes/')));brLabel()
+    const commits=await call('log',logParams());if(g!==S.gen)return
+    S.commits=commits;S.byHash=new Map(commits.map(c=>[c.hash,c]));S.layout=layout(commits);S.rc.clear()
+    if(S.sel==='WORKING'&&!info.dirty){S.sel='';S.detail=null;S.patch=null}
+    if(S.sel){
+      try{const d=await call('commit',{repo:S.repo,hash:S.sel,base:S.detail&&S.detail.base||''});if(g!==S.gen)return
+        if(S.detail&&S.detail.label)d.title=S.detail.label,d.label=S.detail.label;S.detail=d
+        if(S.patch&&d.files.some(f=>f.path===S.patch.path)){const p=S.patch,r=await call('diff',{repo:S.repo,hash:d.hash,base:d.base||'',path:p.path,old:p.old||'',ctx:S.v.ctx});if(g!==S.gen)return;S.patch={...p,diff:r.diff,truncated:r.truncated||0,hash:d.hash}}
+        else S.patch=null
+      }catch{if(g!==S.gen)return;S.sel='';S.detail=null;S.patch=null}
+    }
+    remember(S.repo);render();renderReview()
+  }catch(e){if(g!==S.gen)return
+    S.info=null;S.commits=[];S.byHash=new Map();S.layout={rows:[],width:1};S.rc.clear();render()
+    $('rows').innerHTML=`<div class="empty" role="alert"><b>${esc(e.message)}</b><br><button data-retry style="margin-top:8px">Try again</button></div>`}
+  finally{if(g===S.gen)S.loading=false}
+}
+async function open(hash,base='',rec=true,label=''){
+  if(rec){const k={hash,base,label},c=S.hist[S.hi];if(!c||c.hash!==hash||c.base!==base){S.hist=S.hist.slice(0,S.hi+1);S.hist.push(k);if(S.hist.length>200)S.hist.shift();S.hi=S.hist.length-1}}
+  nav();S.sel=hash;S.last=hash;S.patch=null;S.detail=null;S.ff='';S.chg=-1;paintDetail()
+  const g=++S.dgen
+  try{const d=await call('commit',{repo:S.repo,hash,base});if(g!==S.dgen||S.sel!==hash)return
+    if(label)d.title=d.label=label
+    S.detail=d;paintDetail();renderReview();scrollSel()}
+  catch(e){if(g===S.dgen){say(e.message,false);if(S.sel===hash){S.sel='';paintDetail()}}}}
+function closeDetail(){if(!S.sel)return;S.sel='';S.detail=null;S.patch=null;paintDetail()}
+function scrollSel(){const r=document.querySelector('#rows .row.sel')||$('float').firstElementChild;if(!r)return
+  const top=r.getBoundingClientRect().top,barh=document.querySelector('.bar').offsetHeight+26
+  if(top<barh)scrollBy(0,top-barh-4);else if(top>innerHeight-40)r.scrollIntoView({block:'center'})}
 
-$('rows').addEventListener('click',async ev=>{
+const LABEL={fetch:'Fetching…',pull:'Pulling…',push:'Pushing…','push-branch':'Pushing…','push-tag':'Pushing tag…','delete-remote-branch':'Deleting remote branch…',rebase:'Rebasing…',merge:'Merging…','cherry-pick':'Cherry-picking…',revert:'Reverting…'}
+let acting=0
+async function act(op,extra={},btn){
+  if(!S.info)return
+  const t=LABEL[op]?toast(LABEL[op],'busy'):null
+  if(btn){btn.disabled=true;btn.classList.add('busy')}
+  acting++
+  try{const r=await call('act',{repo:S.repo,op,...extra},true)
+    const acts=[]
+    if(!r.ok&&op==='delete-branch'&&/not fully merged/.test(r.message))acts.push({label:'Force delete',fn:()=>act('delete-branch',{...extra,force:true})})
+    if(!r.ok&&/conflict/i.test(r.message))acts.push({label:'Review conflicts',fn:()=>open('WORKING')})
+    t?t.update(r.message,r.ok?'ok':'bad',acts):toast(r.message,r.ok?'ok':'bad',{actions:acts})
+  }catch(e){t?t.update(e.message,'bad'):say(e.message,false)}
+  finally{acting--;if(btn){btn.disabled=false;btn.classList.remove('busy')}}
+  await refresh()
+}
+function armed(btn,text){ // two-step confirm for buttons
+  if(btn.classList.contains('armed'))return true
+  const o=btn.textContent;btn.classList.add('armed');btn.textContent='Confirm: '+text
+  setTimeout(()=>{btn.classList.remove('armed');btn.textContent=o},4000);return false}
+async function copyPatch(hash,base=''){try{const r=await call('patch',{repo:S.repo,hash,base});if(!r.patch.trim())return say('No changes to copy',false);copy(r.patch,'patch ('+r.patch.split('\n').length+' lines)')}catch(e){say(e.message,false)}}
+
+$('rows').addEventListener('click',onListClick);$('float').addEventListener('click',onListClick)
+async function onListClick(ev){
   const t=ev.target
   if(t.closest('.hdr'))return
+  if(t.closest('[data-retry]'))return refresh()
+  if(t.closest('[data-grep]'))return serverSearch()
+  if(t.closest('[data-clearf]'))return setFilter(NOF())
+  if(t.closest('[data-allbr]')){S.br=[];return brChanged()}
   const btn=t.closest('button[data-a]')
-  if(btn){const a=btn.dataset.a
-    if(a==='copy'){try{await navigator.clipboard.writeText(S.sel);say('Copied '+S.sel.slice(0,7),true)}catch{say(S.sel,true)}return}
-    if(a==='mark'){S.mark=S.mark===S.sel?'':S.sel;render();return}
-    if(a==='compare'){open(S.sel,S.mark);return}
-    if(a==='checkout-b')return act('checkout',{name:btn.dataset.name,hash:undefined})
-    if(a==='branch'||a==='tag'){const v=$(a==='branch'?'newbranch':'newtag').value.trim();if(!v)return say('Enter a name first',false);return act(a,{name:v})}
-    if(btn.classList.contains('danger')){ // two-step confirm
-      if(!btn.classList.contains('armed')){btn.classList.add('armed');const o=btn.textContent;btn.textContent='Confirm: '+(a==='reset'&&btn.dataset.mode==='--hard'?'discards uncommitted work':o);setTimeout(()=>{btn.classList.remove('armed');btn.textContent=o},4000);return}
-    }
-    return act(a,{name:btn.dataset.name,mode:btn.dataset.mode})
+  if(btn){const a=btn.dataset.a,h=S.sel
+    if(a==='copy')return copy(h,h.slice(0,7))
+    if(a==='patch')return copyPatch(h,S.detail&&S.detail.base||'')
+    if(a==='mark'){S.mark=S.mark===h?'':h;paintDetail();return}
+    if(a==='compare')return open(h,S.mark)
+    if(a==='checkout-b')return act('checkout',{name:btn.dataset.name},btn)
+    if(a==='branch'||a==='tag'){const v=$(a==='branch'?'newbranch':'newtag').value.trim();if(!v){say('Enter a name first',false);$(a==='branch'?'newbranch':'newtag').focus();return};return act(a,{hash:h,name:v},btn)}
+    if(btn.classList.contains('danger')&&!armed(btn,a==='reset'&&btn.dataset.mode==='--hard'||a==='reset-head'?'discards uncommitted work':btn.textContent))return
+    return act(a,{hash:h==='WORKING'?undefined:h,name:btn.dataset.name,mode:btn.dataset.mode},btn)
   }
   const g=t.closest('[data-goto]');if(g){jumpTo(g.dataset.goto);return}
   if(t.closest('[data-rv]')){openReview();return}
   if(onDiffUi(ev))return
-
   if(t.closest('.detail'))return
-  const row=t.closest('.row');if(row){const h=row.dataset.h;if(S.sel===h){S.sel='';S.detail=null;render()}else open(h)}
-})
-$('open').onclick=()=>{S.repo=$('repo').value.trim();S.sel='';S.detail=null;S.patch=null;S.n=300;try{localStorage.setItem('gg-repo',S.repo)}catch{};refresh()}
-$('repo').addEventListener('keydown',e=>{if(e.key==='Enter')$('open').click()})
-$('remotes').onchange=async()=>{await refresh()}
-$('search').addEventListener('input',e=>{S.query=e.target.value;render()})
-$('refresh').onclick=()=>{say('');refresh()}
-$('fetch').onclick=()=>{say('Fetching…');act('fetch')}
-$('loadmore').onclick=()=>{S.n+=300;refresh()}
-document.addEventListener('keydown',e=>{if(e.key==='r'&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)&&!e.metaKey&&!e.ctrlKey)refresh()})
-setInterval(async()=>{if(document.hidden||!S.repo)return;try{const r=await call('fp',{repo:S.repo});if(r.fp!==S.fp)refresh()}catch{}},4000)
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.repo)refresh()})
+  const row=t.closest('.row');if(row){const h=row.dataset.h;if(S.sel===h)closeDetail();else open(h)}
+}
+$('banner').addEventListener('click',ev=>{const b=ev.target.closest('button[data-op]');if(!b)return
+  if(b.dataset.op==='abort'&&!armed(b,'abort and lose the resolution so far'))return
+  act(b.dataset.op,{kind:b.dataset.kind},b)})
+$('chips').addEventListener('click',ev=>{const b=ev.target.closest('[data-unf]');if(!b)return;const k=b.dataset.unf
+  if(k==='all')return setFilter(NOF());setFilter({...S.F,[k]:k==='nomerge'?false:''})})
 
+// ---- toolbar, search and filters ----
+$('open').onclick=()=>{const v=$('repo').value.trim();if(!v){$('repo').focus();return};S.repo=v;S.root='';try{localStorage.setItem('gg-repo',v)}catch{};refresh()}
+$('repo').addEventListener('keydown',e=>{if(e.key==='Enter')$('open').click()})
+$('remotes').onchange=()=>refresh()
+let qTimer
+$('search').addEventListener('input',e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{S.query=e.target.value;render()},90)})
+$('search').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();serverSearch()}})
+function serverSearch(){const q=($('search').value||S.query).trim();if(!q)return;clearTimeout(qTimer);S.query='';$('search').value='';setFilter({...S.F,grep:q})}
+function setFilter(F){S.F=F;S.n=300;fillFilterForm();refresh()}
+function fillFilterForm(){$('f-author').value=S.F.author;$('f-since').value=S.F.since;$('f-until').value=S.F.until;$('f-nomerge').checked=S.F.nomerge;$('filt').classList.toggle('on',serverFiltered())}
+$('filt').onclick=()=>{const f=$('filters');f.hidden=!f.hidden;$('filt').setAttribute('aria-expanded',String(!f.hidden));if(!f.hidden)$('f-author').focus();fixBar()}
+$('f-apply').onclick=()=>setFilter({...S.F,author:$('f-author').value.trim(),since:$('f-since').value,until:$('f-until').value,nomerge:$('f-nomerge').checked})
+$('f-clear').onclick=()=>setFilter({...NOF(),file:S.F.file})
+$('filters').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('f-apply').click()}})
+$('refresh').onclick=()=>refresh()
+$('fetch').onclick=e=>act('fetch',{},e.currentTarget)
+$('pull').onclick=e=>act('pull',{},e.currentTarget)
+$('push').onclick=e=>act('push',{},e.currentTarget)
+$('loadmore').onclick=()=>{$('loadmore').disabled=true;$('loadmore').textContent='Loading…';S.n+=500;refresh()}
+setInterval(async()=>{if(document.hidden||!S.repo||!S.info||S.loading||acting)return;try{const r=await call('fp',{repo:S.repo});if(r.fp!==S.fp&&!S.loading)refresh()}catch{}},4000)
+document.addEventListener('visibilitychange',async()=>{if(document.hidden||!S.info||S.loading)return;try{const r=await call('fp',{repo:S.repo});if(r.fp!==S.fp)refresh()}catch{}})
+
+// ---- history and jumping ----
 function nav(){$('back').disabled=S.hi<=0;$('fwd').disabled=S.hi>=S.hist.length-1}
-function goHist(d){const i=S.hi+d;if(i<0||i>=S.hist.length)return;S.hi=i;const [h,b]=S.hist[i].split('|');open(h,b,false)}
-function jumpTo(hash){if(!S.commits.some(c=>c.hash===hash)){say('That commit is not loaded yet - use "Load more commits"',false);return}S.query='';$('search').value='';open(hash)}
-function headHash(){const c=S.commits.find(c=>c.refs.some(r=>r.startsWith('HEAD')))||S.commits[0];return c&&c.hash}
-function step(d){if(!$('review').hidden)return;const vis=visible();if(!vis.length)return
+function goHist(d){const i=S.hi+d;if(i<0||i>=S.hist.length)return;S.hi=i;const e=S.hist[i];open(e.hash,e.base,false,e.label)}
+function jumpTo(hash){
+  if(S.query.trim()&&!visible().some(([c])=>c.hash===hash)){S.query='';$('search').value='';render()}
+  open(hash).then(()=>{if(!S.byHash.has(hash)&&S.sel===hash)say('That commit is not in the loaded list; showing it above the graph.')})}
+function headHash(){return S.info&&S.info.head}
+function step(d){if(!$('review').hidden||!$('raw').hidden)return;const vis=visible();if(!vis.length)return
   let i=vis.findIndex(([c])=>c.hash===S.sel);if(i<0)i=d>0?-1:vis.length
   const n=Math.max(0,Math.min(vis.length-1,i+d));if(vis[n][0].hash!==S.sel)open(vis[n][0].hash)}
 async function stepFile(d){const files=S.detail&&S.detail.files;if(!files||!files.length)return
   let i=S.patch?files.findIndex(f=>f.path===S.patch.path):-1;i=Math.max(0,Math.min(files.length-1,i+d))
-  await loadPatch(files[i].path);document.querySelector('.file.sel')?.scrollIntoView({block:'nearest'})}
+  await loadPatch(files[i]);document.querySelector('.file.sel')?.scrollIntoView({block:'nearest'})}
 function fillJump(){
-  const map=new Map();for(const c of S.commits)for(const r of c.refs){if(r==='HEAD')continue;map.set(r.replace(/^HEAD -> /,'').replace(/^tag: /,'tag: '),c.hash)}
+  const map=new Map();for(const c of S.commits)for(const r of c.refs){if(r==='HEAD')continue;map.set(r.replace(/^HEAD -> /,''),c.hash)}
   const key=[...map.keys()].join('|');if(S._jk===key)return;S._jk=key
   const tags=[...map.keys()].filter(k=>k.startsWith('tag: ')),rest=[...map.keys()].filter(k=>!k.startsWith('tag: '))
-  const o=k=>`<option value="${map.get(k)}">${esc(k)}</option>`
+  const o=k=>`<option value="${esc(map.get(k))}">${esc(k.replace(/^tag: /,''))}</option>`
   $('jump').innerHTML='<option value="">Jump to…</option>'+(rest.length?`<optgroup label="Branches">${rest.map(o).join('')}</optgroup>`:'')+(tags.length?`<optgroup label="Tags">${tags.map(o).join('')}</optgroup>`:'')}
-function recents(){let a=[];try{a=JSON.parse(localStorage.getItem('gg-recent')||'[]')}catch{};return a}
-function remember(r){let a=recents().filter(x=>x!==r);a.unshift(r);a=a.slice(0,8);try{localStorage.setItem('gg-recent',JSON.stringify(a))}catch{};$('recent').innerHTML=a.map(x=>`<option value="${esc(x)}">`).join('')}
+function recents(){let a=[];try{a=JSON.parse(localStorage.getItem('gg-recent')||'[]')}catch{};return Array.isArray(a)?a:[]}
+function remember(r){let a=recents().filter(x=>x!==r);a.unshift(r);a=a.slice(0,8);try{localStorage.setItem('gg-recent',JSON.stringify(a));localStorage.setItem('gg-repo',r)}catch{};$('recent').innerHTML=a.map(x=>`<option value="${esc(x)}">`).join('')}
 $('back').onclick=()=>goHist(-1);$('fwd').onclick=()=>goHist(1)
-$('head').onclick=()=>{const h=headHash();if(h)jumpTo(h)}
+$('head').onclick=()=>{const h=headHash();if(h)jumpTo(h);else say('No commits yet',false)}
 $('jump').onchange=e=>{if(e.target.value)jumpTo(e.target.value);e.target.value=''}
-$('help').onclick=()=>{$('helpbox').hidden=!$('helpbox').hidden}
+const toggleHelp=()=>{$('helpbox').hidden=!$('helpbox').hidden;$('help').setAttribute('aria-expanded',String(!$('helpbox').hidden))}
+$('help').onclick=toggleHelp
+
 document.addEventListener('keydown',e=>{
   const typing=/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)
-  if(e.key==='Escape'&&!$('review').hidden){closeReview();return}
-  if(e.key==='Escape'){if(typing)document.activeElement.blur();else if(S.sel){S.sel='';S.detail=null;render()};return}
+  if(e.key==='Escape'){
+    if(!$('raw').hidden)return closeRaw()
+    if(!$('review').hidden)return closeReview()
+    if(!$('brpop').hidden||!$('stpop').hidden)return closePops()
+    if(typing)return document.activeElement.blur()
+    if(!$('helpbox').hidden)return toggleHelp()
+    return closeDetail()}
   if(e.altKey&&e.key==='ArrowLeft'){goHist(-1);e.preventDefault();return}
   if(e.altKey&&e.key==='ArrowRight'){goHist(1);e.preventDefault();return}
-  if(typing||e.metaKey||e.ctrlKey)return
+  if(typing||e.metaKey||e.ctrlKey||e.altKey||$('ctx'))return
+  if(!$('raw').hidden)return
   const k=e.key,h=()=>e.preventDefault()
+  if((k==='F10'&&e.shiftKey)||k==='ContextMenu'){h();const row=document.querySelector(`#rows .row[data-h="${S.sel}"]`);if(row){const b=row.getBoundingClientRect();showCtx(b.left+40,b.bottom,ctxItems(S.sel),row)};return}
   if(k==='ArrowDown'||k==='j'){h();step(1)}else if(k==='ArrowUp'||k==='k'){h();step(-1)}
-  else if(k==='Enter'){if(S.sel){S.sel='';S.detail=null;render()}}
+  else if(k==='Enter'){if(e.target.closest&&e.target.closest('button,a,.ctx'))return;h();if(S.sel)closeDetail();else{const v=visible(),t=S.last&&(S.last==='WORKING'||v.some(([c])=>c.hash===S.last))?S.last:v[0]&&v[0][0].hash;if(t)open(t)}}
   else if(k==='Home'){h();const v=visible();if(v.length)open(v[0][0].hash)}
   else if(k==='End'){h();const v=visible();if(v.length)open(v[v.length-1][0].hash)}
-  else if(k==='h'){const x=headHash();if(x)jumpTo(x)}
+  else if(k==='h'){$('head').click()}
   else if(k===']'){stepFile(1)}else if(k==='['){stepFile(-1)}
   else if(k==='/'){h();$('search').focus()}
+  else if(k==='r'){refresh()}
   else if(k==='v'){openReview()}else if(k==='n'){gotoChange(1)}else if(k==='p'){gotoChange(-1)}
-  else if(k==='?'){$('helpbox').hidden=!$('helpbox').hidden}
+  else if(k==='?'){toggleHelp()}
 })
 
-// ---- right-click menu ----
-function closeCtx(){const m=$('ctx');if(m)m.remove()}
-function ctxItems(hash,badge){
+// ---- right-click menus ----
+let ctxReturn=null
+function closeCtx(){const m=$('ctx');if(m){m.remove();if(ctxReturn&&document.contains(ctxReturn))ctxReturn.focus?.({preventScroll:true});ctxReturn=null}}
+function ctxItems(hash,badge,file){
   const items=[],add=(label,fn,o={})=>items.push({label,fn,...o}),sep=()=>items.push({sep:1}),hd=t=>items.push({hd:t})
-  const cur=S.info.current
+  const cur=S.info.current,rems=S.info.remotes
+  if(file){const at=S.detail.hash
+    hd(file.path)
+    add(at==='WORKING'?'View file':'View file at this commit',()=>openRaw(at,file.path),{dis:file.status==='D'})
+    if(at!=='WORKING'&&file.status==='D'&&S.detail.meta.parents?.[0])add('View file before it was deleted',()=>openRaw(S.detail.meta.parents[0],file.path))
+    add('Show file history',()=>{closeReview();setFilter({...NOF(),file:file.path})},{dis:file.status==='U'})
+    add('Copy path',()=>copy(file.path,'path'))
+    return items}
   if(hash==='WORKING'){
-    add('Stash uncommitted changes',()=>act('stash'))
-    add('Discard all changes (reset --hard HEAD)',()=>act('reset-head'),{danger:true,confirm:true})
+    add('Stash uncommitted changes…',v=>act('stash',{message:v.msg}),{form:[{k:'msg',ph:'message (optional)',opt:true}],ok:'Stash'})
+    add('Copy changes as patch',()=>copyPatch('WORKING'))
+    sep()
+    add('Discard tracked changes (reset --hard HEAD)',()=>act('reset-head'),{danger:true,confirm:true})
+    add('Delete untracked files (clean -fd)',()=>act('clean'),{danger:true,confirm:true})
     return items
   }
-  const c=S.commits.find(x=>x.hash===hash);if(!c)return items
+  const c=S.byHash.get(hash)||{hash,refs:[],subject:S.detail&&S.detail.title||''}
   if(badge){const {kind,name}=badge.dataset
     hd(kind==='tag'?'Tag '+name:(kind==='remote'?'Remote branch ':'Branch ')+name)
     if(kind==='local'||kind==='remote'){const ref=(kind==='local'?'refs/heads/':'refs/remotes/')+name
       add('Show only this branch',()=>{S.br=[ref];brChanged()})
       add(S.br.includes(ref)?'Remove from shown branches':'Add to shown branches',()=>{S.br=S.br.includes(ref)?S.br.filter(x=>x!==ref):[...S.br,ref];brChanged()})}
     if(kind==='local'){
-      add('Checkout',()=>act('checkout',{name,hash:undefined}),{dis:name===cur})
-      add('Merge into current branch',()=>act('merge',{hash}),{dis:name===cur})
-      add('Rename…',v=>act('rename-branch',{name,newName:v}),{input:'new-name'})
-      add('Push (set upstream to origin)',()=>act('push-branch',{name}))
+      add('Checkout',()=>act('checkout',{name}),{dis:name===cur})
+      add('Merge into current branch',()=>act('merge',{name}),{dis:name===cur||!cur})
+      add('Rebase current branch onto this',()=>act('rebase',{name}),{danger:true,confirm:true,dis:name===cur||!cur})
+      add('Rename…',v=>act('rename-branch',{name,newName:v.name}),{form:[{k:'name',ph:'new-name',def:name}],ok:'Rename'})
+      for(const r of rems.slice(0,4))add(`Push to ${r}${S.info.upstream[name]?'':' (set upstream)'}`,()=>act('push-branch',{name,remote:r}))
+      add('Compare with current branch',()=>compareRefs(cur||'HEAD',name),{dis:name===cur})
       add('Delete branch',()=>act('delete-branch',{name}),{danger:true,confirm:true,dis:name===cur})
     }else if(kind==='remote'){
-      add('Checkout (track as local branch)',()=>act('checkout-remote',{name}))
+      add('Checkout (track as local branch)',()=>act('checkout-remote',{name}),{dis:S.info.local.includes(name.slice(name.indexOf('/')+1))})
+      add('Merge into current branch',()=>act('merge',{name}),{dis:!cur})
+      add('Compare with current branch',()=>compareRefs(cur||'HEAD',name))
+      add('Delete branch on the remote',()=>act('delete-remote-branch',{name}),{danger:true,confirm:true})
     }else{
-      add('Push tag to origin',()=>act('push-tag',{name}))
+      for(const r of rems.slice(0,4))add('Push tag to '+r,()=>act('push-tag',{name,remote:r}))
+      add('Copy tag name',()=>copy(name,'tag name'))
       add('Delete tag',()=>act('delete-tag',{name}),{danger:true,confirm:true})
     }
     sep()
   }
   hd('Commit '+hash.slice(0,7))
   add('Checkout (detached)',()=>act('checkout',{hash}))
-  add('Create branch here…',v=>act('branch',{hash,name:v}),{input:'new-branch-name'})
-  add('Add tag here…',v=>act('tag',{hash,name:v}),{input:'tag-name'})
+  add('Create branch here…',v=>act('branch',{hash,name:v.name,checkout:v.co}),{form:[{k:'name',ph:'new-branch-name'},{k:'co',type:'check',label:'Check it out',def:true}],ok:'Create'})
+  add('Add tag here…',v=>act('tag',{hash,name:v.name,message:v.msg}),{form:[{k:'name',ph:'tag-name'},{k:'msg',ph:'message (optional: makes an annotated tag)',opt:true}],ok:'Add tag'})
   sep()
-  add('Cherry-pick',()=>act('cherry-pick',{hash}))
+  add('Cherry-pick onto current branch',()=>act('cherry-pick',{hash}))
   add('Revert',()=>act('revert',{hash}))
-  add('Merge into current branch',()=>act('merge',{hash}))
-  add('Rebase current branch onto this',()=>act('rebase',{hash}),{danger:true,confirm:true})
+  add('Merge into current branch',()=>act('merge',{hash}),{dis:!cur})
+  add('Merge into current branch (no fast-forward)',()=>act('merge',{hash,noff:true}),{dis:!cur})
+  add('Rebase current branch onto this',()=>act('rebase',{hash}),{danger:true,confirm:true,dis:!cur})
   sep();hd('Reset current branch to this commit')
   add('Soft (keep changes staged)',()=>act('reset',{hash,mode:'--soft'}),{danger:true,confirm:true})
   add('Mixed (keep changes unstaged)',()=>act('reset',{hash,mode:'--mixed'}),{danger:true,confirm:true})
   add('Hard (discard all changes)',()=>act('reset',{hash,mode:'--hard'}),{danger:true,confirm:true})
   sep()
-  add('Copy commit hash',async()=>{try{await navigator.clipboard.writeText(hash);say('Copied '+hash.slice(0,7),true)}catch{say(hash,true)}})
-  add('Copy subject',async()=>{try{await navigator.clipboard.writeText(c.subject);say('Copied subject',true)}catch{say(c.subject,true)}})
-  add(S.mark===hash?'Unmark for compare':'Mark for compare',()=>{S.mark=S.mark===hash?'':hash;render()})
+  add('Copy commit hash',()=>copy(hash,hash.slice(0,7)))
+  add('Copy subject',()=>copy(c.subject,'subject'))
+  add('Copy as patch',()=>copyPatch(hash))
+  add(S.mark===hash?'Unmark for compare':'Mark for compare',()=>{S.mark=S.mark===hash?'':hash;paintDetail()})
   if(S.mark&&S.mark!==hash)add('Compare with '+S.mark.slice(0,7),()=>open(hash,S.mark))
-  return items
+  add('Compare with working tree',()=>open('WORKING'),{dis:!(S.info.dirty&&hash===S.info.head)})
+  return items.filter(it=>!(it.label==='Compare with working tree'&&it.dis))
 }
-function showCtx(x,y,items){
-  closeCtx();const m=document.createElement('div');m.id='ctx';m.className='ctx'
+function showCtx(x,y,items,ret){
+  closeCtx();ctxReturn=ret||document.activeElement
+  const m=document.createElement('div');m.id='ctx';m.className='ctx';m.setAttribute('role','menu')
   for(const it of items){
     const el=document.createElement('div')
-    if(it.sep){el.className='sep'}else if(it.hd){el.className='hd';el.textContent=it.hd}
+    if(it.sep){el.className='sep';el.setAttribute('role','separator')}else if(it.hd){el.className='hd';el.textContent=it.hd;el.title=it.hd}
     else{
-      el.className='it'+(it.danger?' danger':'')+(it.dis?' dis':'');el.textContent=it.label
+      el.className='it'+(it.danger?' danger':'')+(it.dis?' dis':'');el.textContent=it.label;el.setAttribute('role','menuitem');el.tabIndex=-1
+      if(it.dis)el.setAttribute('aria-disabled','true')
       el.onclick=ev=>{ev.stopPropagation()
-        if(it.input&&!el.dataset.open){el.dataset.open=1;el.className='it';el.onclick=null;el.textContent=it.label.replace('…',':')+' '
-          const inp=document.createElement('input');inp.placeholder=it.input;const ok=document.createElement('button');ok.textContent='OK'
-          const go=()=>{const v=inp.value.trim();if(!v)return;closeCtx();it.fn(v)};ok.onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go();e.stopPropagation()}
-          el.append(inp,ok);inp.focus();return}
+        if(it.form){const f=document.createElement('form');f.onclick=e=>e.stopPropagation()
+          f.innerHTML=`<b>${esc(it.label.replace('…',''))}</b>`+it.form.map(fd=>fd.type==='check'?'':`<input type="text" name="${fd.k}" placeholder="${esc(fd.ph)}" value="${esc(fd.def||'')}" spellcheck="false" aria-label="${esc(fd.ph)}">`).join('')
+            +`<div class="row2">${it.form.filter(fd=>fd.type==='check').map(fd=>`<label><input type="checkbox" name="${fd.k}"${fd.def?' checked':''}> ${esc(fd.label)}</label>`).join('')}<button type="button" data-x>Cancel</button><button type="submit">${esc(it.ok||'OK')}</button></div>`
+          f.onsubmit=e=>{e.preventDefault();const v={};for(const fd of it.form)v[fd.k]=fd.type==='check'?f.elements[fd.k].checked:f.elements[fd.k].value.trim()
+            const miss=it.form.find(fd=>fd.type!=='check'&&!fd.opt&&!v[fd.k]);if(miss){f.elements[miss.k].focus();return}
+            closeCtx();it.fn(v)}
+          f.querySelector('[data-x]').onclick=closeCtx
+          f.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape')closeCtx()})
+          m.innerHTML='';m.append(f);place(m,x,y);const i1=f.querySelector('input[type=text]');i1.focus();i1.select();return}
         if(it.confirm&&!it.armed){it.armed=true;el.classList.add('armed');el.textContent='Click again to confirm: '+it.label;return}
         closeCtx();it.fn()}
     }
     m.appendChild(el)
   }
-  document.body.appendChild(m)
-  m.style.left=Math.max(4,Math.min(x,innerWidth-m.offsetWidth-8))+'px'
-  m.style.top=Math.max(4,Math.min(y,innerHeight-m.offsetHeight-8))+'px'
+  m.addEventListener('keydown',e=>{
+    const its=[...m.querySelectorAll('.it:not(.dis)')],i=its.indexOf(document.activeElement)
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();e.stopPropagation();its[(i+(e.key==='ArrowDown'?1:-1)+its.length)%its.length]?.focus()}
+    else if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();document.activeElement.click()}
+    else if(e.key==='Tab'){e.preventDefault()}
+  })
+  document.body.appendChild(m);place(m,x,y);m.querySelector('.it:not(.dis)')?.focus({preventScroll:true})
 }
-$('rows').addEventListener('contextmenu',ev=>{
-  const row=ev.target.closest('.row');if(!row||!S.info)return
+function place(m,x,y){m.style.left=Math.max(4,Math.min(x,innerWidth-m.offsetWidth-8))+'px';m.style.top=Math.max(4,Math.min(y,innerHeight-m.offsetHeight-8))+'px'}
+function onCtx(ev){
+  if(!S.info)return
+  const f=ev.target.closest('.file');if(f&&S.detail){const file=S.detail.files.find(x=>x.path===f.dataset.file);if(file){ev.preventDefault();showCtx(ev.clientX,ev.clientY,ctxItems(null,null,file))};return}
+  if(ev.target.closest('.detail'))return
+  const row=ev.target.closest('.row');if(!row)return
   ev.preventDefault();showCtx(ev.clientX,ev.clientY,ctxItems(row.dataset.h,ev.target.closest('.badge[data-kind]')))
-})
+}
+$('rows').addEventListener('contextmenu',onCtx);$('float').addEventListener('contextmenu',onCtx);$('review').addEventListener('contextmenu',onCtx)
 document.addEventListener('click',e=>{if(!e.target.closest('#ctx'))closeCtx()})
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCtx()},true)
-addEventListener('scroll',closeCtx,{passive:true});addEventListener('resize',closeCtx)
-$('pull').onclick=()=>{say('Pulling…');act('pull')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('ctx')){e.stopPropagation();closeCtx()}},true)
+addEventListener('scroll',()=>{if($('ctx')&&!$('ctx').querySelector('form'))closeCtx()},{passive:true});addEventListener('resize',closeCtx)
 
 // ---- diff viewer ----
 try{S.v=JSON.parse(localStorage.getItem('gg-view')||'null')}catch{}
-S.v=S.v||{mode:innerWidth>=900?'split':'unified',wrap:true,ctx:3};S.ff='';S.chg=-1
+S.v=S.v&&typeof S.v==='object'?S.v:{mode:innerWidth>=900?'split':'unified',wrap:true,ctx:3}
 const saveV=()=>{try{localStorage.setItem('gg-view',JSON.stringify(S.v))}catch{}}
 function parseDiff(t){const meta=[],hunks=[];let hk=null,o=0,n=0;const L=t.split('\n')
   L.forEach((l,i)=>{
     if(l.startsWith('@@')){const m=/@@ -(\d+)(?:,\d+)? \+(\d+)/.exec(l);o=m?+m[1]:0;n=m?+m[2]:0;hk={header:l,lines:[]};hunks.push(hk);return}
-    if(!hk){meta.push(l);return}
+    if(!hk||l.startsWith('diff --git ')){hk=null;meta.push(l);return}
     if(l.startsWith('\\')){hk.lines.push({t:'note',text:l});return}
     const c=l[0]
     if(c==='+')hk.lines.push({t:'add',n:n++,text:l.slice(1)})
@@ -402,15 +647,15 @@ function parseDiff(t){const meta=[],hunks=[];let hk=null,o=0,n=0;const L=t.split
   return {meta,hunks}}
 const tok=s=>s.match(/\w+|\s+|[^\w\s]/g)||[]
 function wdiff(a,b){
+  if(a.length>2000||b.length>2000)return null
   const X=tok(a),Y=tok(b);if(!X.length||!Y.length)return null
   let p=0;while(p<X.length&&p<Y.length&&X[p]===Y[p])p++
   let s=0;while(s<X.length-p&&s<Y.length-p&&X[X.length-1-s]===Y[Y.length-1-s])s++
   const x=X.slice(p,X.length-s),y=Y.slice(p,Y.length-s)
   if(x.length*y.length>250000)return null
-  if(p+s<Math.min(X.length,Y.length)*0.35&&x.length&&y.length){} // low overlap is checked after LCS below
   const L=Array.from({length:x.length+1},()=>new Uint16Array(y.length+1))
   for(let i=x.length-1;i>=0;i--)for(let j=y.length-1;j>=0;j--)L[i][j]=x[i]===y[j]?L[i+1][j+1]+1:Math.max(L[i+1][j],L[i][j+1])
-  if(p+s+L[0][0]<Math.max(X.length,Y.length)*0.35)return null
+  if(p+s+L[0][0]<Math.max(X.length,Y.length)*0.35)return null // too different: highlight nothing
   let i=0,j=0,ra=X.slice(0,p).map(esc).join(''),rb=Y.slice(0,p).map(esc).join(''),ma=false,mb=false
   const A=(t,m)=>{if(m&&!ma){ra+='<mark>';ma=true}else if(!m&&ma){ra+='</mark>';ma=false};ra+=esc(t)}
   const B=(t,m)=>{if(m&&!mb){rb+='<mark>';mb=true}else if(!m&&mb){rb+='</mark>';mb=false};rb+=esc(t)}
@@ -433,7 +678,7 @@ function prep(hk){ // groups lines into context lines and change runs, adding wo
     const w=wdiff(it.dels[q].text,it.adds[q].text);if(w){it.dels[q].html=w[0]||' ';it.adds[q].html=w[1]||' '}}
   return items}
 function hunkHtml(hk,i,mode){
-  const items=prep(hk);let r=`<tbody><tr class="hh" data-hunk="${i}"><td colspan="${mode==='split'?4:3}">${esc(hk.header)}</td></tr>`
+  const items=prep(hk);let r=`<tbody><tr class="hh" data-hunk="${i}" title="Click to collapse or expand"><td colspan="${mode==='split'?4:3}">${esc(hk.header)}</td></tr>`
   const sg=c=>`<span class="sg">${c}</span>`
   for(const it of items){
     if(it.k==='one'){const l=it.l
@@ -452,29 +697,39 @@ function hunkHtml(hk,i,mode){
   }
   return r+'</tbody>'}
 function diffViewHtml(){
-  const p=S.patch;if(!p||!S.detail||!S.detail.files.some(f=>f.path===p.path))return ''
-  const D=parseDiff(p.diff),v=S.v;let adds=0,dels=0
+  const p=S.patch,d=S.detail;if(!p||!d||p.hash!==d.hash||!d.files.some(f=>f.path===p.path))return ''
+  if(p.loading)return '<div class="dv"><div class="empty loading" style="padding:14px">Loading diff…</div></div>'
+  const D=parseDiff(p.diff),v=S.v,f=d.files.find(f=>f.path===p.path);let adds=0,dels=0
   for(const hk of D.hunks)for(const l of hk.lines){if(l.t==='add')adds++;else if(l.t==='del')dels++}
-  const seg=(key,opts)=>`<span class="seg">${opts.map(([val,label])=>`<button data-dv="${key}:${val}" class="${String(v[key])===String(val)?'on':''}">${label}</button>`).join('')}</span>`
+  const seg=(key,opts)=>`<span class="seg">${opts.map(([val,label])=>`<button data-dv="${key}:${val}" class="${String(v[key])===String(val)?'on':''}" aria-pressed="${String(v[key])===String(val)}">${label}</button>`).join('')}</span>`
   let body
-  if(!D.hunks.length)body=`<div class="empty" style="padding:14px">${esc(D.meta.filter(l=>l&&!/^(diff|index) /.test(l)).join('\n')||'No textual changes (binary file or mode change).')}</div>`
+  if(!D.hunks.length){const info=D.meta.filter(l=>l&&!/^(diff|index|---|\+\+\+) /.test(l)).join('\n')
+    body=`<div class="empty" style="padding:14px">${esc(info||(f&&f.add<0?'Binary file: no text to show.':'No textual changes (mode change or empty file).'))}</div>`}
   else{const cols=v.mode==='split'?'<col style="width:46px"><col><col style="width:46px"><col>':'<col style="width:46px"><col style="width:46px"><col>'
     body=`<table class="df ${v.mode}${v.wrap?' wrap':''}"><colgroup>${cols}</colgroup>${D.hunks.map((hk,i)=>hunkHtml(hk,i,v.mode)).join('')}</table>`}
-  return `<div class="dv"><div class="dvh"><span class="path" title="${esc(p.path)}">${esc(p.path)}</span><span class="st-A">+${adds}</span><span class="st-D">−${dels}</span>
-    ${seg('mode',[['unified','Unified'],['split','Split']])}${seg('ctx',[[3,'±3'],[10,'±10'],[99999,'Full file']])}
-    <button data-dv="wrap" class="${v.wrap?'on':''}">Wrap</button><button data-dv="chg:-1" title="Previous change (p)">↑</button><button data-dv="chg:1" title="Next change (n)">↓</button></div>
+  const old=f&&f.old&&f.old!==f.path?`<span class="fold" title="renamed from">${esc(f.old)}</span> → `:''
+  return `<div class="dv"><div class="dvh"><span class="path" title="${esc(p.path)}">${old}${esc(p.path)}</span><span class="st-A">+${adds}</span><span class="st-D">−${dels}</span>
+    ${seg('mode',[['unified','Unified'],['split','Split']])}${seg('ctx',[[3,'±3'],[10,'±10'],[99999,'Full']])}
+    <button data-dv="wrap" class="${v.wrap?'on':''}" aria-pressed="${!!v.wrap}">Wrap</button><button data-dv="chg:-1" title="Previous change (p)" aria-label="Previous change">↑</button><button data-dv="chg:1" title="Next change (n)" aria-label="Next change">↓</button>
+    <button data-dv="raw" title="View the whole file"${f&&f.status==='D'?' disabled':''}>View file</button><button data-dv="hist" title="Show the commits that changed this file"${f&&f.status==='U'?' disabled':''}>History</button></div>
     <div class="dvb">${body}</div>${p.truncated?`<div class="empty" style="padding:8px 12px">… ${p.truncated} more lines not shown</div>`:''}</div>`}
 function fileListHtml(files){
-  const q=S.ff.toLowerCase();let h=files.length>6?`<input class="filter" data-ff placeholder="Filter files…" value="${esc(S.ff)}">`:''
+  const q=S.ff.toLowerCase();let h=files.length>6?`<input class="filter" data-ff placeholder="Filter files…" aria-label="Filter files" value="${esc(S.ff)}">`:''
   h+='<div class="fl">'
   for(const f of files){const i=f.path.lastIndexOf('/'),dir=i>=0?f.path.slice(0,i+1):'',nm=f.path.slice(i+1)
-    const a=Math.max(f.add,0),d=Math.max(f.del,0),tot=a+d,ga=tot?Math.round(a/tot*5):0
-    const bar=f.add<0?'':`<span class="bar5">${[0,1,2,3,4].map(k=>`<i class="${tot?(k<ga?'a':'d'):''}"></i>`).join('')}</span>`
-    h+=`<div class="file${S.patch&&S.patch.path===f.path?' sel':''}" data-file="${esc(f.path)}"${q&&!f.path.toLowerCase().includes(q)?' style="display:none"':''}><span class="pill ${f.status}">${f.status}</span><span class="fname" title="${esc(f.path)}"><span class="fdir">${esc(dir)}</span>${esc(nm)}</span><span class="nums">${f.add<0?'binary':`<span class="st-A">+${f.add}</span> <span class="st-D">−${f.del}</span>`}</span>${bar}</div>`}
+    const a=Math.max(f.add||0,0),d=Math.max(f.del||0,0),tot=a+d,ga=tot?Math.round(a/tot*5):0
+    const bar=f.add==null||f.add<0?'':`<span class="bar5" aria-hidden="true">${[0,1,2,3,4].map(k=>`<i class="${tot?(k<ga?'a':'d'):''}"></i>`).join('')}</span>`
+    const nums=f.add==null?'<span class="st-A">new</span>':f.add<0?'binary':`<span class="st-A">+${f.add}</span> <span class="st-D">−${f.del}</span>`
+    const label={A:'added',D:'deleted',M:'modified',R:'renamed',C:'copied',U:'untracked',X:'conflicted',T:'type changed'}[f.status]||f.status
+    h+=`<div class="file${S.patch&&S.patch.path===f.path?' sel':''}" data-file="${esc(f.path)}" title="${esc((f.old&&f.old!==f.path?f.old+' → ':'')+f.path)} (${label})"${q&&!f.path.toLowerCase().includes(q)?' style="display:none"':''}><span class="pill ${esc(f.status)}" aria-label="${label}">${f.status==='X'?'!':esc(f.status)}</span><span class="fname"><span class="fdir">${esc(dir)}</span>${esc(nm)}</span><span class="nums">${nums}</span>${bar}</div>`}
   return h+'</div>'}
-function rerender(){render();renderReview()}
-async function loadPatch(path){
-  try{const r=await call('diff',{repo:S.repo,hash:S.detail.hash,base:S.detail.base||'',path,ctx:S.v.ctx});S.patch={path,diff:r.diff,truncated:r.truncated||0};S.chg=-1;rerender()}catch(e){say(e.message,false)}}
+function rerender(){paintDetail();renderReview()}
+async function loadPatch(f){
+  const d=S.detail;if(!d)return;if(typeof f==='string')f=d.files.find(x=>x.path===f);if(!f)return
+  const g=++S.pgen;S.patch={hash:d.hash,path:f.path,old:f.old||'',loading:true};S.chg=-1;rerender()
+  try{const r=await call('diff',{repo:S.repo,hash:d.hash,base:d.base||'',path:f.path,old:f.old||'',ctx:S.v.ctx});if(g!==S.pgen||S.detail!==d)return
+    S.patch={hash:d.hash,path:f.path,old:f.old||'',diff:r.diff,truncated:r.truncated||0};rerender()}
+  catch(e){if(g===S.pgen){S.patch=null;rerender();say(e.message,false)}}}
 function gotoChange(d){
   const scope=!$('review').hidden?$('review'):document;const rows=[...scope.querySelectorAll('.dv tr.chg')];if(!rows.length)return
   rows.forEach(r=>r.classList.remove('cur'));S.chg=((S.chg<0&&d<0?0:S.chg)+d+rows.length)%rows.length
@@ -484,19 +739,22 @@ function onDiffUi(ev){
   if(b){const [k,val]=b.dataset.dv.split(':')
     if(k==='mode'){S.v.mode=val;saveV();rerender()}else if(k==='wrap'){S.v.wrap=!S.v.wrap;saveV();rerender()}
     else if(k==='ctx'){S.v.ctx=+val;saveV();if(S.patch)loadPatch(S.patch.path)}else if(k==='chg')gotoChange(+val)
+    else if(k==='raw'&&S.patch)openRaw(S.detail.hash,S.patch.path)
+    else if(k==='hist'&&S.patch){closeReview();setFilter({...NOF(),file:S.patch.path})}
     return true}
   const hh=t.closest('tr.hh');if(hh){hh.parentElement.classList.toggle('collapsed');return true}
   const f=t.closest('.file');if(f){loadPatch(f.dataset.file);return true}
   return false}
 function renderReview(){const el=$('review');if(el.hidden)return
-  const d=S.detail;if(!d){el.innerHTML='';return}
+  const d=S.detail;if(!d){closeReview();return}
   const sc=el.querySelector('.rvs')?.scrollTop||0,sd=el.querySelector('.rvd')?.scrollTop||0
-  el.innerHTML=`<div class="rvh"><b>${esc(d.title||'')}</b><span style="color:var(--dim)">${d.base?esc(d.base.slice(0,7))+' → ':''}${d.hash==='WORKING'?'working tree':esc(d.hash.slice(0,7))} · ${d.files.length} files</span><span style="margin-left:auto"></span><button data-rvf="-1">← File</button><button data-rvf="1">File →</button><button data-rvc>✕ Close (Esc)</button></div>
+  el.innerHTML=`<div class="rvh"><b title="${esc(d.title||'')}">${esc(d.title||'')}</b><span style="color:var(--dim)">${d.base?esc(d.base.slice(0,7))+' → ':''}${d.hash==='WORKING'?'working tree':esc(d.hash.slice(0,7))} · ${d.files.length} file${d.files.length===1?'':'s'}</span><span style="margin-left:auto"></span><button data-rvf="-1" title="Previous file ([)">← File</button><button data-rvf="1" title="Next file (])">File →</button><button data-rvc>✕ Close (Esc)</button></div>
     <div class="rvm"><div class="rvs">${fileListHtml(d.files)}</div><div class="rvd">${S.patch?diffViewHtml():'<div class="empty">Select a file on the left.</div>'}</div></div>`
   el.querySelector('.rvs').scrollTop=sc;el.querySelector('.rvd').scrollTop=sd}
-function openReview(){if(!S.detail||!S.detail.files.length)return;$('review').hidden=false;document.body.style.overflow='hidden'
-  if(!S.patch)loadPatch(S.detail.files[0].path);else renderReview()}
-function closeReview(){$('review').hidden=true;document.body.style.overflow=''}
+let reviewReturn=null
+function openReview(){if(!S.detail||!S.detail.files.length)return;reviewReturn=document.activeElement;$('review').hidden=false;document.body.style.overflow='hidden'
+  if(!S.patch)loadPatch(S.detail.files[0]);else renderReview();$('review').querySelector('[data-rvc]')?.focus()}
+function closeReview(){if($('review').hidden)return;$('review').hidden=true;$('review').innerHTML='';document.body.style.overflow=$('raw').hidden?'':'hidden';reviewReturn?.focus?.({preventScroll:true})}
 $('review').addEventListener('click',ev=>{
   if(ev.target.closest('[data-rvc]'))return closeReview()
   const f=ev.target.closest('[data-rvf]');if(f)return stepFile(+f.dataset.rvf)
@@ -505,51 +763,91 @@ document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('[da
   document.querySelectorAll('.file').forEach(el=>{el.style.display=!q||el.dataset.file.toLowerCase().includes(q)?'':'none'})
   document.querySelectorAll('[data-ff]').forEach(i=>{if(i!==e.target)i.value=S.ff})}})
 
-// ---- multi-select branches ----
+// ---- raw file view ----
+let rawGen=0
+async function openRaw(hash,path){
+  const el=$('raw'),g=++rawGen,at=hash==='WORKING'?'working tree':hash.slice(0,7)
+  const head=extra=>`<div class="rvh"><b title="${esc(path)}">${esc(path)}</b><span style="color:var(--dim)">at ${esc(at)}</span><span style="margin-left:auto"></span>${extra||''}<button data-rawc>✕ Close (Esc)</button></div>`
+  el.hidden=false;document.body.style.overflow='hidden';el.innerHTML=head()+'<div class="rvd"><div class="empty loading" style="padding:16px">Loading…</div></div>';el.querySelector('[data-rawc]').focus()
+  try{const r=await call('raw',{repo:S.repo,hash,path});if(g!==rawGen||el.hidden)return
+    let body
+    if(r.tooBig)body=`<div class="empty" style="padding:16px">The file is too large to show (${(r.size/1048576).toFixed(1)} MB).</div>`
+    else if(r.binary)body=`<div class="empty" style="padding:16px">Binary file (${r.size} bytes).</div>`
+    else{const L=r.text.split('\n');if(L.length>1&&L[L.length-1]==='')L.pop()
+      body=`<table class="df"><colgroup><col style="width:56px"><col></colgroup><tbody>${L.map((l,i)=>`<tr><td class="ln">${i+1}</td><td class="cd">${esc(l)||' '}</td></tr>`).join('')}</tbody></table>`}
+    el.innerHTML=head(r.text!=null?'<button data-rawcopy>Copy contents</button>':'')+`<div class="rvd">${body}</div>`;el._text=r.text;el.querySelector('[data-rawc]').focus()
+  }catch(e){if(g===rawGen&&!el.hidden)el.querySelector('.rvd').innerHTML=`<div class="empty" style="padding:16px">${esc(e.message)}</div>`}}
+function closeRaw(){if($('raw').hidden)return;$('raw').hidden=true;$('raw').innerHTML='';$('raw')._text=null;document.body.style.overflow=$('review').hidden?'':'hidden'}
+$('raw').addEventListener('click',e=>{if(e.target.closest('[data-rawc]'))closeRaw();else if(e.target.closest('[data-rawcopy]'))copy($('raw')._text||'','file contents')})
+
+// ---- branch picker, compare, stashes ----
 const refName=r=>r.replace(/^refs\/(heads|remotes|tags)\//,'')
-function brLabel(){const n=S.br.length;$('brbtn').textContent=(n===0?'All branches':n===1?refName(S.br[0]):n+' branches')+' ▾'}
-function brAll(){const i=S.info||{local:[],remote:[],tags:[]};return {local:i.local.map(n=>'refs/heads/'+n),remote:$('remotes').checked?i.remote.map(n=>'refs/remotes/'+n):[],tags:(i.tags||[]).map(n=>'refs/tags/'+n)}}
+function brLabel(){const n=S.br.length;$('brbtn').textContent=(n===0?'All branches':n===1?refName(S.br[0]):n+' branches')+' ▾';$('brbtn').title=n?S.br.map(refName).join('\n'):'Choose which branches to show, or compare two refs'}
+function brAll(){const i=S.info||{local:[],remote:[],tags:[]};return {local:i.local.map(n=>'refs/heads/'+n),remote:$('remotes').checked?i.remote.map(n=>'refs/remotes/'+n):[],tags:i.tags.map(n=>'refs/tags/'+n)}}
 let brTimer
-function brChanged(){brLabel();try{localStorage.setItem('gg-br:'+S.repo,JSON.stringify(S.br))}catch{};clearTimeout(brTimer);brTimer=setTimeout(()=>refresh(),250)}
+function brChanged(){brLabel();try{localStorage.setItem('gg-br:'+S.root,JSON.stringify(S.br))}catch{};clearTimeout(brTimer);brTimer=setTimeout(()=>refresh(),250)}
 function brList(){const all=brAll(),q=S.brq.toLowerCase()
   const sec=(t,l)=>{l=l.filter(r=>refName(r).toLowerCase().includes(q));return l.length?`<div class="hd">${t}</div>`+l.map(r=>`<label class="bi" title="${esc(refName(r))}"><input type="checkbox" data-br="${esc(r)}"${S.br.includes(r)?' checked':''}> ${esc(refName(r))}</label>`).join(''):''}
   return sec('Branches',all.local)+sec('Remote branches',all.remote)+sec('Tags',all.tags)||'<div class="empty" style="padding:8px">No match.</div>'}
-function brOpen(){const pop=$('brpop');S.brq=''
-  pop.innerHTML=`<input type="text" id="brq" placeholder="Filter branches…"><div class="bq"><button data-bra="all">Show all</button><button data-bra="local">Only local</button><button data-bra="sel">Selected: ${S.br.length}</button></div><div class="bnote">Tick several to compare them. Nothing ticked = all.</div><div class="bl">${brList()}</div>`
-  pop.hidden=false;pop.querySelector('#brq').focus()}
-$('brbtn').onclick=ev=>{ev.stopPropagation();$('brpop').hidden?brOpen():($('brpop').hidden=true)}
+function showPop(pop,btn){pop.hidden=false;btn.setAttribute('aria-expanded','true');const b=btn.getBoundingClientRect()
+  pop.style.top=Math.min(b.bottom+4,innerHeight-pop.offsetHeight-8)+'px';pop.style.left=Math.max(8,Math.min(b.left,innerWidth-pop.offsetWidth-8))+'px'}
+function closePops(){for(const [p,b] of [['brpop','brbtn'],['stpop','stbtn']]){if(!$(p).hidden){$(p).hidden=true;$(b).setAttribute('aria-expanded','false')}}}
+function brOpen(){if(!S.info)return;const pop=$('brpop');S.brq='';closePops()
+  const i=S.info,refs=['HEAD',...i.local,...($('remotes').checked?i.remote:[]),...i.tags]
+  pop.innerHTML=`<input type="text" id="brq" placeholder="Filter branches…" aria-label="Filter branches"><div class="bq"><button data-bra="all">Show all</button><button data-bra="local">Only local</button><button data-bra="sel" disabled>Selected: ${S.br.length}</button></div><div class="bnote">Tick several to show only them. Nothing ticked = all.</div><div class="bl">${brList()}</div>
+    <div class="hd">Compare two refs</div><datalist id="refs-dl">${refs.map(r=>`<option value="${esc(r)}">`).join('')}</datalist>
+    <div class="cmp"><input id="cmpa" list="refs-dl" placeholder="from (e.g. main)" aria-label="Compare from" spellcheck="false" value="${esc(i.current||'HEAD')}"><span>→</span><input id="cmpb" list="refs-dl" placeholder="to (branch, tag, hash)" aria-label="Compare to" spellcheck="false"><button data-bra="cmp">Compare</button></div>`
+  showPop(pop,$('brbtn'));pop.querySelector('#brq').focus()}
+async function compareRefs(a,b){
+  try{const [ra,rb]=await Promise.all([call('resolve',{repo:S.repo,ref:a}),call('resolve',{repo:S.repo,ref:b})])
+    if(ra.hash===rb.hash)return say(`${a} and ${b} point to the same commit`)
+    open(rb.hash,ra.hash,true,`Compare ${a} → ${b}`)}catch(e){say(e.message,false)}}
+$('brbtn').onclick=ev=>{ev.stopPropagation();$('brpop').hidden?brOpen():closePops()}
 $('brpop').addEventListener('click',ev=>ev.stopPropagation())
 $('brpop').addEventListener('input',ev=>{if(ev.target.id==='brq'){S.brq=ev.target.value;$('brpop').querySelector('.bl').innerHTML=brList()}})
+$('brpop').addEventListener('keydown',ev=>{if(ev.key==='Enter'&&/cmp[ab]/.test(ev.target.id)){ev.preventDefault();$('brpop').querySelector('[data-bra="cmp"]').click()}})
 $('brpop').addEventListener('change',ev=>{const r=ev.target.dataset&&ev.target.dataset.br;if(!r)return
   S.br=ev.target.checked?[...S.br,r]:S.br.filter(x=>x!==r);$('brpop').querySelector('[data-bra="sel"]').textContent='Selected: '+S.br.length;brChanged()})
 $('brpop').addEventListener('click',ev=>{const b=ev.target.closest('[data-bra]');if(!b)return;const k=b.dataset.bra
+  if(k==='cmp'){const a=$('cmpa').value.trim(),c=$('cmpb').value.trim();if(!a||!c){($('cmpa').value.trim()?$('cmpb'):$('cmpa')).focus();return};closePops();return compareRefs(a,c)}
   if(k==='all')S.br=[];else if(k==='local')S.br=brAll().local;else return
   $('brpop').querySelector('.bl').innerHTML=brList();$('brpop').querySelector('[data-bra="sel"]').textContent='Selected: '+S.br.length;brChanged()})
-document.addEventListener('click',()=>{$('brpop').hidden=true})
-document.addEventListener('keydown',e=>{if(e.key==='Escape')$('brpop').hidden=true},true)
+function stOpen(){if(!S.info)return;closePops();const pop=$('stpop'),i=S.info
+  let h=i.dirty?`<div class="hd">Stash uncommitted changes</div><div class="bq"><input type="text" id="stmsg" placeholder="message (optional)" aria-label="Stash message" style="flex:1"><button data-st="push">Stash</button></div>`:'<div class="bnote" style="padding:4px">No uncommitted changes to stash.</div>'
+  h+=`<div class="hd">Stashes (${i.stashes.length})</div>`
+  h+=i.stashes.length?i.stashes.map(s=>`<div class="sti"><span class="nm" title="${esc(s.msg)}">${esc(s.msg)} <small>${esc(s.name)} · ${esc(s.when)}</small></span><button data-st="view" data-h="${esc(s.hash)}">View</button><button data-st="stash-apply" data-name="${esc(s.name)}">Apply</button><button data-st="stash-pop" data-name="${esc(s.name)}">Pop</button><button class="danger" data-st="stash-drop" data-name="${esc(s.name)}">Drop</button></div>`).join(''):'<div class="bnote" style="padding:4px">No stashes.</div>'
+  pop.innerHTML=h;showPop(pop,$('stbtn'));(pop.querySelector('#stmsg')||pop.querySelector('button'))?.focus()}
+$('stbtn').onclick=ev=>{ev.stopPropagation();$('stpop').hidden?stOpen():closePops()}
+$('stpop').addEventListener('click',ev=>{ev.stopPropagation();const b=ev.target.closest('[data-st]');if(!b)return;const k=b.dataset.st
+  if(k==='push'){closePops();return act('stash',{message:$('stmsg').value.trim()})}
+  if(k==='view'){closePops();return open(b.dataset.h)}
+  if(k==='stash-drop'&&!armed(b,'drop'))return
+  closePops();act(k,{name:b.dataset.name})})
+$('stpop').addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='stmsg'){ev.preventDefault();$('stpop').querySelector('[data-st="push"]').click()}})
+document.addEventListener("click",closePops);addEventListener("resize",closePops)
 
 // ---- resizable columns ----
-try{S.cw=JSON.parse(localStorage.getItem('gg-cols')||'{}')}catch{S.cw={}}
-const COLDEF={gw:null,ww:130,wd:84,wh:66},COLMIN={gw:32,ww:50,wd:60,wh:50},COLVAR={gw:'--gw',ww:'--ww',wd:'--wd',wh:'--wh'}
+try{S.cw=JSON.parse(localStorage.getItem('gg-cols')||'{}')||{}}catch{S.cw={}}
+const COLMIN={gw:32,ww:50,wd:60,wh:50},COLVAR={gw:'--gw',ww:'--ww',wd:'--wd',wh:'--wh'}
 function fixBar(){const b=document.querySelector('.bar');if(b)document.documentElement.style.setProperty('--barh',b.offsetHeight+'px')}
-addEventListener('resize',fixBar)
+try{new ResizeObserver(fixBar).observe(document.querySelector('.bar'))}catch{addEventListener('resize',fixBar)}
 $('rows').addEventListener('pointerdown',ev=>{
   const hd=ev.target.closest('.rs');if(!hd)return
   ev.preventDefault();ev.stopPropagation()
   const col=hd.dataset.col,dir=+hd.dataset.dir,cell=hd.parentElement
-  const startX=ev.clientX,startW=cell.getBoundingClientRect().width-(col==='gw'?0:0)
+  const startX=ev.clientX,startW=cell.getBoundingClientRect().width
   hd.classList.add('drag');document.body.classList.add('resizing');hd.setPointerCapture(ev.pointerId)
   const move=e=>{const w=Math.round(Math.max(COLMIN[col],Math.min(700,startW+dir*(e.clientX-startX))))
     document.documentElement.style.setProperty(COLVAR[col],w+'px');S.cw[col]=w}
-  const up=()=>{hd.classList.remove('drag');document.body.classList.remove('resizing');hd.removeEventListener('pointermove',move);hd.removeEventListener('pointerup',up)
-    try{localStorage.setItem('gg-cols',JSON.stringify(S.cw))}catch{}}
-  hd.addEventListener('pointermove',move);hd.addEventListener('pointerup',up)
+  const up=()=>{hd.classList.remove('drag');document.body.classList.remove('resizing');hd.removeEventListener('pointermove',move);hd.removeEventListener('pointerup',up);hd.removeEventListener('pointercancel',up)
+    try{localStorage.setItem('gg-cols',JSON.stringify(S.cw))}catch{};if(col==='gw')render()}
+  hd.addEventListener('pointermove',move);hd.addEventListener('pointerup',up);hd.addEventListener('pointercancel',up)
 })
 $('rows').addEventListener('dblclick',ev=>{const hd=ev.target.closest('.rs');if(!hd)return;ev.preventDefault();delete S.cw[hd.dataset.col]
   try{localStorage.setItem('gg-cols',JSON.stringify(S.cw))}catch{};render()})
 
 const qs=new URLSearchParams(location.search)
 let start=qs.get('repo');if(!start){try{start=localStorage.getItem('gg-repo')}catch{}}
-S.layout={rows:[],width:1}
-if(start){S.repo=start;$('repo').value=start;refresh()}else $('rows').innerHTML='<div class="empty">Enter the path of a git folder above.</div>'
+fixBar();$('recent').innerHTML=recents().map(x=>`<option value="${esc(x)}">`).join('')
+if(start){S.repo=start;$('repo').value=start;refresh()}else $('rows').innerHTML='<div class="empty"><b>Enter the path of a git folder above</b> and press Enter.</div>'
 </script></body></html>

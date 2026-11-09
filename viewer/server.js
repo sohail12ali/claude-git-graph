@@ -117,18 +117,20 @@ const api = {
       files: parseFiles(a.out, b.out),
     }
   },
-  async diff({ repo, hash, base, path: file }) {
+  async diff({ repo, hash, base, path: file, ctx }) {
     const root = await resolveRepo(repo)
     if (!file) throw new Error('no path')
+    const U = '-U' + Math.min(Math.max(parseInt(ctx, 10) || 3, 0), 100000)
     let r
     if (hash === 'WORKING') {
-      r = await git(root, ['diff', 'HEAD', '--', file])
-      if (!r.out) r = await git(root, ['diff', '--no-index', '--', '/dev/null', file])
+      r = await git(root, ['diff', U, 'HEAD', '--', file])
+      if (!r.out) r = await git(root, ['diff', U, '--no-index', '--', '/dev/null', file])
     } else if (!HASH.test(hash)) throw new Error('bad hash')
-    else if (base) r = await git(root, ['diff', base, hash, '--', file])
-    else r = await git(root, ['show', '--format=', '-m', '--first-parent', hash, '--', file])
+    else if (base) r = await git(root, ['diff', U, base, hash, '--', file])
+    else r = await git(root, ['show', '--format=', '-m', '--first-parent', U, hash, '--', file])
     const lines = r.out.split('\n')
-    return { diff: lines.slice(0, 2000).join('\n') + (lines.length > 2000 ? `\n… ${lines.length - 2000} more lines` : '') }
+    const MAX = 6000
+    return { diff: lines.slice(0, MAX).join('\n'), truncated: Math.max(0, lines.length - MAX) }
   },
   async act({ repo, op, hash, name, newName, mode }) {
     const root = await resolveRepo(repo)

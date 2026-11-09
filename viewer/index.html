@@ -31,6 +31,34 @@ pre.diff .a{color:var(--add)}pre.diff .d{color:var(--del)}pre.diff .h{color:var(
 .ctx{position:fixed;z-index:30;background:var(--bg);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:4px;min-width:240px;max-width:340px}
 .ctx .it{padding:5px 10px;border-radius:4px;cursor:pointer;display:flex;gap:6px;align-items:center}.ctx .it:hover{background:var(--hover)}.ctx .it.danger{color:var(--del)}.ctx .it.armed{background:var(--del);color:#fff}.ctx .it.dis{opacity:.4;pointer-events:none}
 .ctx .sep{height:1px;background:var(--line);margin:4px 0}.ctx .hd{color:var(--dim);font-size:11px;padding:4px 10px 2px}.ctx input{flex:1;min-width:0}
+
+.fl{margin:6px 0}.filter{width:100%;margin:4px 0}
+.file{align-items:center}.fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fdir{color:var(--dim)}
+.pill{display:inline-block;width:18px;text-align:center;border-radius:4px;font-weight:700;font-size:11px;color:#fff;flex:none}
+.pill.A,.pill.U{background:var(--add)}.pill.D{background:var(--del)}.pill.M,.pill.R{background:var(--warn)}.pill.C{background:var(--hunk)}
+.nums{white-space:nowrap}.bar5{display:inline-flex;gap:1px;margin-left:6px;flex:none}.bar5 i{width:7px;height:7px;background:var(--line);display:block}.bar5 i.a{background:var(--add)}.bar5 i.d{background:var(--del)}
+.dv{margin:8px 0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg)}
+.dvh{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 10px;background:var(--panel);border-bottom:1px solid var(--line)}
+.dvh .path{font-weight:600;flex:1 1 200px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg{display:inline-flex}.seg button{border-radius:0;margin-left:-1px;padding:2px 8px}.seg button:first-child{border-radius:6px 0 0 6px;margin:0}.seg button:last-child{border-radius:0 6px 6px 0}.seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.dvb{overflow:auto;max-height:560px}
+table.df{border-collapse:collapse;width:100%;font:12px/1.5 ui-monospace,Menlo,monospace}table.df.split{table-layout:fixed}
+table.df td{padding:0 6px;vertical-align:top}
+table.df td.ln{text-align:right;color:var(--dim);user-select:none;background:var(--panel);border-right:1px solid var(--line)}
+table.df td.cd{white-space:pre}table.df.wrap td.cd{white-space:pre-wrap;word-break:break-all}
+td.cd.add{background:color-mix(in srgb,var(--add) 16%,transparent)}td.cd.del{background:color-mix(in srgb,var(--del) 16%,transparent)}
+td.ln.add{background:color-mix(in srgb,var(--add) 30%,var(--panel))}td.ln.del{background:color-mix(in srgb,var(--del) 30%,var(--panel))}
+td.cd.empty{background:var(--panel)}.sg{color:var(--dim);user-select:none;display:inline-block;width:1.2ch}
+.df mark{background:color-mix(in srgb,var(--add) 50%,transparent);color:inherit;border-radius:2px}.df td.del mark{background:color-mix(in srgb,var(--del) 50%,transparent)}
+tr.hh td{background:color-mix(in srgb,var(--hunk) 14%,var(--bg));color:var(--hunk);cursor:pointer;padding:3px 10px;user-select:none}
+tbody.collapsed tr:not(.hh){display:none}tbody.collapsed tr.hh td::after{content:"  … collapsed";color:var(--dim)}
+tr.cur td.cd{box-shadow:inset 0 0 0 2px var(--accent)}
+#review{position:fixed;inset:0;z-index:25;background:var(--bg);display:flex;flex-direction:column}#review[hidden]{display:none}
+.rvh{display:flex;gap:10px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.rvm{flex:1;display:grid;grid-template-columns:minmax(220px,340px) 1fr;min-height:0}
+.rvs{overflow:auto;border-right:1px solid var(--line);padding:8px 10px}.rvd{overflow:auto;padding:4px 12px 16px}
+#review .dvb{max-height:none;overflow:visible}#review .dv{overflow:visible}#review .dvh{position:sticky;top:0;z-index:2}
+@media(max-width:700px){.rvm{grid-template-columns:1fr;grid-template-rows:30vh 1fr}.rvs{border-right:0;border-bottom:1px solid var(--line)}}
 a.lnk{color:var(--accent);cursor:pointer;text-decoration:underline}
 </style></head>
 <body>
@@ -53,11 +81,13 @@ Enter   open / close details   Esc   close details
 h       jump to HEAD       Home / End   first / last loaded commit
 ] / [   next / previous file in the commit (shows its diff)
 /       search             r   refresh
+n / p   next / previous change in the diff     v   full-screen review
 Alt+←   back               Alt+→   forward (history of commits you opened)
 Click a parent hash in the details to walk down the history.
 Right-click a commit, a branch/tag label, or the Uncommitted row for git operations.</div></div>
 <div class="status"><span id="info"></span><span id="msg" class="msg"></span></div>
 <div id="rows" class="rows"></div>
+<div id="review" hidden></div>
 <div id="more" class="empty" hidden><button id="loadmore">Load more commits</button></div>
 <script>
 const TOKEN='__TOKEN__', PAL=['#2ea043','#388bfd','#a371f7','#d29922','#f0883e','#39c5cf','#db61a2','#7ee787'], LW=16, RH=26
@@ -145,10 +175,10 @@ function detailHtml(c){
   let h=`<div class="detail" data-detail="${d.hash}"><h3>${esc(d.title||'(no message)')}</h3>`
   if(m.full)h+=`<div class="meta">Commit:  ${esc(m.full)}\nParents: ${m.parents.length?m.parents.map(x=>`<a class="lnk" data-goto="${x}">${x.slice(0,7)}</a>`).join(' '):'(root)'}\nAuthor:  ${esc(m.author)} &lt;${esc(m.email)}&gt;\nDate:    ${esc(m.date)}${m.committer&&m.author!==m.committer?'  (committed by '+esc(m.committer)+')':''}</div>`
   if(d.message)h+=`<div class="body">${esc(d.message)}</div>`
-  h+=`<div><b>${files.length} file${files.length===1?'':'s'} changed</b> <span style="color:var(--add)">+${adds}</span> <span style="color:var(--del)">−${dels}</span></div><div class="files">`
-  for(const f of files)h+=`<div class="file${S.patch&&S.patch.path===f.path?' sel':''}" data-file="${esc(f.path)}"><span class="st-${f.status}">${f.status}</span><span>${esc(f.path)}</span><span class="nums">${f.add<0?'binary':`+${f.add} −${f.del}`}</span></div>`
+  h+=`<div><b>${files.length} file${files.length===1?'':'s'} changed</b> <span style="color:var(--add)">+${adds}</span> <span style="color:var(--del)">−${dels}</span> <button data-rv title="Open the full-screen review (v)">Review changes ⤢</button></div><div class="files">`
+  h+=fileListHtml(files)
   h+='</div>'
-  if(S.patch&&files.some(f=>f.path===S.patch.path))h+=`<pre class="diff">${S.patch.diff.split('\n').map(l=>`<span class="${l.startsWith('+')&&!l.startsWith('+++')?'a':l.startsWith('-')&&!l.startsWith('---')?'d':l.startsWith('@@')?'h':''}">${esc(l)}</span>`).join('\n')}</pre>`
+  h+=diffViewHtml()
   if(d.hash!=='WORKING'&&c){
     const cur=S.info.current,locals=S.info.local.filter(b=>c.refs.some(r=>r===b||r==='HEAD -> '+b))
     const tags=c.refs.filter(r=>r.startsWith('tag: ')).map(r=>r.slice(5))
@@ -197,8 +227,9 @@ $('rows').addEventListener('click',async ev=>{
     return act(a,{name:btn.dataset.name,mode:btn.dataset.mode})
   }
   const g=t.closest('[data-goto]');if(g){jumpTo(g.dataset.goto);return}
-  const f=t.closest('.file');if(f){const p=f.dataset.file
-    try{const r=await call('diff',{repo:S.repo,hash:S.detail.hash,base:S.detail.base||'',path:p});S.patch={path:p,diff:r.diff||'(no textual changes)'};render()}catch(e){say(e.message,false)}return}
+  if(t.closest('[data-rv]')){openReview();return}
+  if(onDiffUi(ev))return
+
   if(t.closest('.detail'))return
   const row=t.closest('.row');if(row){const h=row.dataset.h;if(S.sel===h){S.sel='';S.detail=null;render()}else open(h)}
 })
@@ -218,13 +249,12 @@ function nav(){$('back').disabled=S.hi<=0;$('fwd').disabled=S.hi>=S.hist.length-
 function goHist(d){const i=S.hi+d;if(i<0||i>=S.hist.length)return;S.hi=i;const [h,b]=S.hist[i].split('|');open(h,b,false)}
 function jumpTo(hash){if(!S.commits.some(c=>c.hash===hash)){say('That commit is not loaded yet - use "Load more commits"',false);return}S.query='';$('search').value='';open(hash)}
 function headHash(){const c=S.commits.find(c=>c.refs.some(r=>r.startsWith('HEAD')))||S.commits[0];return c&&c.hash}
-function step(d){const vis=visible();if(!vis.length)return
+function step(d){if(!$('review').hidden)return;const vis=visible();if(!vis.length)return
   let i=vis.findIndex(([c])=>c.hash===S.sel);if(i<0)i=d>0?-1:vis.length
   const n=Math.max(0,Math.min(vis.length-1,i+d));if(vis[n][0].hash!==S.sel)open(vis[n][0].hash)}
 async function stepFile(d){const files=S.detail&&S.detail.files;if(!files||!files.length)return
   let i=S.patch?files.findIndex(f=>f.path===S.patch.path):-1;i=Math.max(0,Math.min(files.length-1,i+d))
-  try{const r=await call('diff',{repo:S.repo,hash:S.detail.hash,base:S.detail.base||'',path:files[i].path});S.patch={path:files[i].path,diff:r.diff||'(no textual changes)'};render()
-    document.querySelector('.file.sel')?.scrollIntoView({block:'nearest'})}catch(e){say(e.message,false)}}
+  await loadPatch(files[i].path);document.querySelector('.file.sel')?.scrollIntoView({block:'nearest'})}
 function fillJump(){
   const map=new Map();for(const c of S.commits)for(const r of c.refs){if(r==='HEAD')continue;map.set(r.replace(/^HEAD -> /,'').replace(/^tag: /,'tag: '),c.hash)}
   const key=[...map.keys()].join('|');if(S._jk===key)return;S._jk=key
@@ -239,6 +269,7 @@ $('jump').onchange=e=>{if(e.target.value)jumpTo(e.target.value);e.target.value='
 $('help').onclick=()=>{$('helpbox').hidden=!$('helpbox').hidden}
 document.addEventListener('keydown',e=>{
   const typing=/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)
+  if(e.key==='Escape'&&!$('review').hidden){closeReview();return}
   if(e.key==='Escape'){if(typing)document.activeElement.blur();else if(S.sel){S.sel='';S.detail=null;render()};return}
   if(e.altKey&&e.key==='ArrowLeft'){goHist(-1);e.preventDefault();return}
   if(e.altKey&&e.key==='ArrowRight'){goHist(1);e.preventDefault();return}
@@ -251,6 +282,7 @@ document.addEventListener('keydown',e=>{
   else if(k==='h'){const x=headHash();if(x)jumpTo(x)}
   else if(k===']'){stepFile(1)}else if(k==='['){stepFile(-1)}
   else if(k==='/'){h();$('search').focus()}
+  else if(k==='v'){openReview()}else if(k==='n'){gotoChange(1)}else if(k==='p'){gotoChange(-1)}
   else if(k==='?'){$('helpbox').hidden=!$('helpbox').hidden}
 })
 
@@ -330,6 +362,126 @@ document.addEventListener('click',e=>{if(!e.target.closest('#ctx'))closeCtx()})
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCtx()},true)
 addEventListener('scroll',closeCtx,{passive:true});addEventListener('resize',closeCtx)
 $('pull').onclick=()=>{say('Pulling…');act('pull')}
+
+// ---- diff viewer ----
+try{S.v=JSON.parse(localStorage.getItem('gg-view')||'null')}catch{}
+S.v=S.v||{mode:innerWidth>=900?'split':'unified',wrap:true,ctx:3};S.ff='';S.chg=-1
+const saveV=()=>{try{localStorage.setItem('gg-view',JSON.stringify(S.v))}catch{}}
+function parseDiff(t){const meta=[],hunks=[];let hk=null,o=0,n=0;const L=t.split('\n')
+  L.forEach((l,i)=>{
+    if(l.startsWith('@@')){const m=/@@ -(\d+)(?:,\d+)? \+(\d+)/.exec(l);o=m?+m[1]:0;n=m?+m[2]:0;hk={header:l,lines:[]};hunks.push(hk);return}
+    if(!hk){meta.push(l);return}
+    if(l.startsWith('\\')){hk.lines.push({t:'note',text:l});return}
+    const c=l[0]
+    if(c==='+')hk.lines.push({t:'add',n:n++,text:l.slice(1)})
+    else if(c==='-')hk.lines.push({t:'del',o:o++,text:l.slice(1)})
+    else if(c===' '||(l===''&&i<L.length-1))hk.lines.push({t:'ctx',o:o++,n:n++,text:l.slice(1)})
+  })
+  return {meta,hunks}}
+const tok=s=>s.match(/\w+|\s+|[^\w\s]/g)||[]
+function wdiff(a,b){
+  const X=tok(a),Y=tok(b);if(!X.length||!Y.length)return null
+  let p=0;while(p<X.length&&p<Y.length&&X[p]===Y[p])p++
+  let s=0;while(s<X.length-p&&s<Y.length-p&&X[X.length-1-s]===Y[Y.length-1-s])s++
+  const x=X.slice(p,X.length-s),y=Y.slice(p,Y.length-s)
+  if(x.length*y.length>250000)return null
+  if(p+s<Math.min(X.length,Y.length)*0.35&&x.length&&y.length){} // low overlap is checked after LCS below
+  const L=Array.from({length:x.length+1},()=>new Uint16Array(y.length+1))
+  for(let i=x.length-1;i>=0;i--)for(let j=y.length-1;j>=0;j--)L[i][j]=x[i]===y[j]?L[i+1][j+1]+1:Math.max(L[i+1][j],L[i][j+1])
+  if(p+s+L[0][0]<Math.max(X.length,Y.length)*0.35)return null
+  let i=0,j=0,ra=X.slice(0,p).map(esc).join(''),rb=Y.slice(0,p).map(esc).join(''),ma=false,mb=false
+  const A=(t,m)=>{if(m&&!ma){ra+='<mark>';ma=true}else if(!m&&ma){ra+='</mark>';ma=false};ra+=esc(t)}
+  const B=(t,m)=>{if(m&&!mb){rb+='<mark>';mb=true}else if(!m&&mb){rb+='</mark>';mb=false};rb+=esc(t)}
+  while(i<x.length&&j<y.length){
+    if(x[i]===y[j]){A(x[i],false);B(y[j],false);i++;j++}
+    else if(L[i+1][j]>=L[i][j+1]){A(x[i++],true)}else{B(y[j++],true)}
+  }
+  while(i<x.length)A(x[i++],true);while(j<y.length)B(y[j++],true)
+  A('',false);B('',false)
+  ra+=X.slice(X.length-s).map(esc).join('');rb+=Y.slice(Y.length-s).map(esc).join('')
+  return [ra,rb]}
+function prep(hk){ // groups lines into context lines and change runs, adding word-level marks
+  const items=[];let cur=null
+  for(const l of hk.lines){
+    l.html=esc(l.text)||' '
+    if(l.t==='ctx'||l.t==='note'){cur=null;items.push({k:'one',l})}
+    else{if(!cur){cur={k:'chg',dels:[],adds:[]};items.push(cur)};(l.t==='del'?cur.dels:cur.adds).push(l)}
+  }
+  for(const it of items)if(it.k==='chg')for(let q=0;q<Math.min(it.dels.length,it.adds.length);q++){
+    const w=wdiff(it.dels[q].text,it.adds[q].text);if(w){it.dels[q].html=w[0]||' ';it.adds[q].html=w[1]||' '}}
+  return items}
+function hunkHtml(hk,i,mode){
+  const items=prep(hk);let r=`<tbody><tr class="hh" data-hunk="${i}"><td colspan="${mode==='split'?4:3}">${esc(hk.header)}</td></tr>`
+  const sg=c=>`<span class="sg">${c}</span>`
+  for(const it of items){
+    if(it.k==='one'){const l=it.l
+      if(l.t==='note'){r+=mode==='split'?`<tr><td class="ln"></td><td class="cd" colspan="3" style="color:var(--dim)">${esc(l.text)}</td></tr>`:`<tr><td class="ln"></td><td class="ln"></td><td class="cd" style="color:var(--dim)">${esc(l.text)}</td></tr>`;continue}
+      r+=mode==='split'?`<tr><td class="ln">${l.o}</td><td class="cd">${l.html}</td><td class="ln">${l.n}</td><td class="cd">${l.html}</td></tr>`
+        :`<tr><td class="ln">${l.o}</td><td class="ln">${l.n}</td><td class="cd">${sg(' ')}${l.html}</td></tr>`
+    }else if(mode==='split'){
+      const m=Math.max(it.dels.length,it.adds.length)
+      for(let q=0;q<m;q++){const d=it.dels[q],a=it.adds[q]
+        r+=`<tr${q===0?' class="chg"':''}>`+(d?`<td class="ln del">${d.o}</td><td class="cd del">${d.html}</td>`:'<td class="ln"></td><td class="cd empty"></td>')+(a?`<td class="ln add">${a.n}</td><td class="cd add">${a.html}</td>`:'<td class="ln"></td><td class="cd empty"></td>')+'</tr>'}
+    }else{
+      let first=true
+      for(const d of it.dels){r+=`<tr${first?' class="chg"':''}><td class="ln del">${d.o}</td><td class="ln del"></td><td class="cd del">${sg('-')}${d.html}</td></tr>`;first=false}
+      for(const a of it.adds){r+=`<tr${first?' class="chg"':''}><td class="ln add"></td><td class="ln add">${a.n}</td><td class="cd add">${sg('+')}${a.html}</td></tr>`;first=false}
+    }
+  }
+  return r+'</tbody>'}
+function diffViewHtml(){
+  const p=S.patch;if(!p||!S.detail||!S.detail.files.some(f=>f.path===p.path))return ''
+  const D=parseDiff(p.diff),v=S.v;let adds=0,dels=0
+  for(const hk of D.hunks)for(const l of hk.lines){if(l.t==='add')adds++;else if(l.t==='del')dels++}
+  const seg=(key,opts)=>`<span class="seg">${opts.map(([val,label])=>`<button data-dv="${key}:${val}" class="${String(v[key])===String(val)?'on':''}">${label}</button>`).join('')}</span>`
+  let body
+  if(!D.hunks.length)body=`<div class="empty" style="padding:14px">${esc(D.meta.filter(l=>l&&!/^(diff|index) /.test(l)).join('\n')||'No textual changes (binary file or mode change).')}</div>`
+  else{const cols=v.mode==='split'?'<col style="width:46px"><col><col style="width:46px"><col>':'<col style="width:46px"><col style="width:46px"><col>'
+    body=`<table class="df ${v.mode}${v.wrap?' wrap':''}"><colgroup>${cols}</colgroup>${D.hunks.map((hk,i)=>hunkHtml(hk,i,v.mode)).join('')}</table>`}
+  return `<div class="dv"><div class="dvh"><span class="path" title="${esc(p.path)}">${esc(p.path)}</span><span class="st-A">+${adds}</span><span class="st-D">−${dels}</span>
+    ${seg('mode',[['unified','Unified'],['split','Split']])}${seg('ctx',[[3,'±3'],[10,'±10'],[99999,'Full file']])}
+    <button data-dv="wrap" class="${v.wrap?'on':''}">Wrap</button><button data-dv="chg:-1" title="Previous change (p)">↑</button><button data-dv="chg:1" title="Next change (n)">↓</button></div>
+    <div class="dvb">${body}</div>${p.truncated?`<div class="empty" style="padding:8px 12px">… ${p.truncated} more lines not shown</div>`:''}</div>`}
+function fileListHtml(files){
+  const q=S.ff.toLowerCase();let h=files.length>6?`<input class="filter" data-ff placeholder="Filter files…" value="${esc(S.ff)}">`:''
+  h+='<div class="fl">'
+  for(const f of files){const i=f.path.lastIndexOf('/'),dir=i>=0?f.path.slice(0,i+1):'',nm=f.path.slice(i+1)
+    const a=Math.max(f.add,0),d=Math.max(f.del,0),tot=a+d,ga=tot?Math.round(a/tot*5):0
+    const bar=f.add<0?'':`<span class="bar5">${[0,1,2,3,4].map(k=>`<i class="${tot?(k<ga?'a':'d'):''}"></i>`).join('')}</span>`
+    h+=`<div class="file${S.patch&&S.patch.path===f.path?' sel':''}" data-file="${esc(f.path)}"${q&&!f.path.toLowerCase().includes(q)?' style="display:none"':''}><span class="pill ${f.status}">${f.status}</span><span class="fname" title="${esc(f.path)}"><span class="fdir">${esc(dir)}</span>${esc(nm)}</span><span class="nums">${f.add<0?'binary':`<span class="st-A">+${f.add}</span> <span class="st-D">−${f.del}</span>`}</span>${bar}</div>`}
+  return h+'</div>'}
+function rerender(){render();renderReview()}
+async function loadPatch(path){
+  try{const r=await call('diff',{repo:S.repo,hash:S.detail.hash,base:S.detail.base||'',path,ctx:S.v.ctx});S.patch={path,diff:r.diff,truncated:r.truncated||0};S.chg=-1;rerender()}catch(e){say(e.message,false)}}
+function gotoChange(d){
+  const scope=!$('review').hidden?$('review'):document;const rows=[...scope.querySelectorAll('.dv tr.chg')];if(!rows.length)return
+  rows.forEach(r=>r.classList.remove('cur'));S.chg=((S.chg<0&&d<0?0:S.chg)+d+rows.length)%rows.length
+  const r=rows[S.chg];r.classList.add('cur');r.scrollIntoView({block:'center'})}
+function onDiffUi(ev){
+  const t=ev.target,b=t.closest('[data-dv]')
+  if(b){const [k,val]=b.dataset.dv.split(':')
+    if(k==='mode'){S.v.mode=val;saveV();rerender()}else if(k==='wrap'){S.v.wrap=!S.v.wrap;saveV();rerender()}
+    else if(k==='ctx'){S.v.ctx=+val;saveV();if(S.patch)loadPatch(S.patch.path)}else if(k==='chg')gotoChange(+val)
+    return true}
+  const hh=t.closest('tr.hh');if(hh){hh.parentElement.classList.toggle('collapsed');return true}
+  const f=t.closest('.file');if(f){loadPatch(f.dataset.file);return true}
+  return false}
+function renderReview(){const el=$('review');if(el.hidden)return
+  const d=S.detail;if(!d){el.innerHTML='';return}
+  const sc=el.querySelector('.rvs')?.scrollTop||0,sd=el.querySelector('.rvd')?.scrollTop||0
+  el.innerHTML=`<div class="rvh"><b>${esc(d.title||'')}</b><span style="color:var(--dim)">${d.base?esc(d.base.slice(0,7))+' → ':''}${d.hash==='WORKING'?'working tree':esc(d.hash.slice(0,7))} · ${d.files.length} files</span><span style="margin-left:auto"></span><button data-rvf="-1">← File</button><button data-rvf="1">File →</button><button data-rvc>✕ Close (Esc)</button></div>
+    <div class="rvm"><div class="rvs">${fileListHtml(d.files)}</div><div class="rvd">${S.patch?diffViewHtml():'<div class="empty">Select a file on the left.</div>'}</div></div>`
+  el.querySelector('.rvs').scrollTop=sc;el.querySelector('.rvd').scrollTop=sd}
+function openReview(){if(!S.detail||!S.detail.files.length)return;$('review').hidden=false;document.body.style.overflow='hidden'
+  if(!S.patch)loadPatch(S.detail.files[0].path);else renderReview()}
+function closeReview(){$('review').hidden=true;document.body.style.overflow=''}
+$('review').addEventListener('click',ev=>{
+  if(ev.target.closest('[data-rvc]'))return closeReview()
+  const f=ev.target.closest('[data-rvf]');if(f)return stepFile(+f.dataset.rvf)
+  onDiffUi(ev)})
+document.addEventListener('input',e=>{if(e.target.matches&&e.target.matches('[data-ff]')){S.ff=e.target.value;const q=S.ff.toLowerCase()
+  document.querySelectorAll('.file').forEach(el=>{el.style.display=!q||el.dataset.file.toLowerCase().includes(q)?'':'none'})
+  document.querySelectorAll('[data-ff]').forEach(i=>{if(i!==e.target)i.value=S.ff})}})
 
 const qs=new URLSearchParams(location.search)
 let start=qs.get('repo');if(!start){try{start=localStorage.getItem('gg-repo')}catch{}}

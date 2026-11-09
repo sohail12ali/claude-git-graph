@@ -1,45 +1,54 @@
 # Git Graph for Claude Code
 
-A mod that adds a **Git Graph** pane beside the chat, in the spirit of the VS Code extension by mhutchie. It shows the commit graph of the folder the session is working in, with branch and tag labels, and updates after Bash tool calls.
+A mod that shows the **commit graph of the folder your Claude Code chat is working in**, with branches, tags, commit details, diffs and common git actions. It is inspired by the Git Graph extension for VS Code (by mhutchie) and is not affiliated with it.
 
-## Features
-
-- Colored commit graph across local and remote branches, with tags and HEAD labels
-- Click a commit to expand its details: hash, parents, author, date, full message and changed files with +/- counts
-- Click a file to see its diff; an "Uncommitted changes" row shows working-tree changes
-- Branch dropdown, remotes toggle and search by message, author, hash or ref
-- Mark a commit and compare it with another
-- Actions: copy hash, checkout, cherry-pick, revert, merge, create branch, add tag, fetch, and confirmed soft/mixed/hard reset
-
-The desktop viewer also has:
-
-- Stash list with view, apply, pop and drop; push and pull with ahead/behind counts
-- A banner with Continue / Abort when a merge, rebase, cherry-pick or revert stops on conflicts
-- Search the whole history (Enter in the search box), author and date filters, hide merge commits
-- File history, view a file at any commit, copy a commit or the working changes as a patch
-- Compare any two branches, tags or commits from the branch picker
-- Annotated tags, branches with or without checkout, delete remote branches
-
-Open it with `/git-graph`.
-
-- **Terminal Claude Code:** the graph opens as a pane beside the chat (`r` refreshes, `f` fetches).
-- **Claude desktop app** (no mod panes): `/git-graph` starts a small local viewer (`viewer/`, plain Node.js, no dependencies, bound to 127.0.0.1) and prints a link for the folder the chat is working in. Open it in the app's Browser pane. It has the same features, with a drawn graph.
+- **Terminal Claude Code:** the graph opens as a pane beside the chat.
+- **Claude desktop app** (which has no mod panes): `/git-graph` starts a small local viewer and prints a link. Open it in the app's Browser pane, or in any browser on the same computer.
 
 ## Install
 
-At the prompt of a terminal session:
+At the prompt of a terminal Claude Code session:
 
 ```
 /plugin install git-graph --marketplace sohail12ali/claude-git-graph
 ```
 
-From a shell:
+Or from a shell:
 
 ```
 claude plugin install git-graph --marketplace sohail12ali/claude-git-graph
 ```
 
-The repository is private: each computer needs GitHub access (for example `gh auth login`).
+Then run `/git-graph` in any chat that is working in a git folder.
+
+**Requirements:** Node.js 18 or newer (for the desktop viewer) and `git` on your PATH. No other dependencies.
+
+## Features
+
+- Colored graph across local and remote branches, with branch, tag and HEAD labels
+- Click a commit for details: hash, parents, author, date, full message and changed files with +/- counts
+- Diffs: side-by-side or unified, word-level highlights, full-screen review, extra context, collapsible hunks
+- Uncommitted changes row; stash list with view, apply, pop and drop
+- Multi-select branches and tags, remotes toggle, search the whole history, author and date filters, hide merge commits
+- Compare any two branches, tags or commits; file history; view a file at any commit; copy a commit as a patch
+- Right-click menus: checkout, create branch or tag, cherry-pick, revert, merge, rebase, reset (soft, mixed, hard), push, pull, fetch, delete branch or tag. Risky actions ask for a second click.
+- Banner with Continue / Skip / Abort when a merge, rebase, cherry-pick or revert stops on conflicts
+- Keyboard navigation, history (back and forward), resizable columns, light and dark themes
+
+## Privacy and safety
+
+- The viewer only listens on `127.0.0.1` (your own computer) and rejects requests from other hosts and other websites. Every request needs a random token that exists only in the page it serves.
+- It runs `git` on folders you open. Nothing is sent over the network except what git itself does when you press Fetch, Pull or Push.
+- The git actions change your repository exactly as the same git commands would. Review before you confirm a reset, rebase or delete.
+
+## Development
+
+```
+node viewer/server.js          # serves http://127.0.0.1:47770/ ; open it with ?repo=<folder>
+claude plugin validate .
+```
+
+The viewer is two files (`viewer/server.js`, `viewer/index.html`) with no build step.
 
 ## License
 

@@ -1,5 +1,13 @@
 {
   "name": "git-graph-marketplace",
-  "owner": { "name": "Noble Wave" },
-  "plugins": [{ "name": "git-graph", "source": "./" }]
+  "owner": {
+    "name": "Noble Wave"
+  },
+  "plugins": [
+    {
+      "name": "git-graph",
+      "source": "./"
+    }
+  ],
+  "description": "Git Graph for Claude Code: a commit graph, diffs and git actions for the folder you are working in."
 }

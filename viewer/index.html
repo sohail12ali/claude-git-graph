@@ -28,17 +28,29 @@ pre.diff{margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:6px
 pre.diff .a{color:var(--add)}pre.diff .d{color:var(--del)}pre.diff .h{color:var(--hunk)}
 .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}.actions input{width:170px}
 .empty{color:var(--dim);padding:24px 0}
+a.lnk{color:var(--accent);cursor:pointer;text-decoration:underline}
 </style></head>
 <body>
 <div class="bar">
-  <input id="repo" placeholder="Path of a git folder" spellcheck="false">
+  <button id="back" title="Back (Alt+←)" disabled>←</button><button id="fwd" title="Forward (Alt+→)" disabled>→</button>
+  <input id="repo" list="recent" placeholder="Path of a git folder" spellcheck="false"><datalist id="recent"></datalist>
   <button id="open">Open</button>
+  <button id="head" title="Jump to HEAD (h)">HEAD</button>
+  <select id="jump" title="Jump to a branch or tag"><option value="">Jump to…</option></select>
   <select id="branch" title="Branch"></select>
   <label title="Show remote branches"><input id="remotes" type="checkbox" checked> Remotes</label>
   <input id="search" placeholder="Search message, author, hash, ref">
   <button id="refresh" title="Refresh (r)">Refresh</button>
   <button id="fetch" title="git fetch --all --prune">Fetch</button>
+  <button id="help" title="Keyboard shortcuts (?)">?</button>
 </div>
+<div id="helpbox" class="detail" hidden><b>Keyboard</b><div class="meta">↓ / j   next commit        ↑ / k   previous commit
+Enter   open / close details   Esc   close details
+h       jump to HEAD       Home / End   first / last loaded commit
+] / [   next / previous file in the commit (shows its diff)
+/       search             r   refresh
+Alt+←   back               Alt+→   forward (history of commits you opened)
+Click a parent hash in the details to walk down the history.</div></div>
 <div class="status"><span id="info"></span><span id="msg" class="msg"></span></div>
 <div id="rows" class="rows"></div>
 <div id="more" class="empty" hidden><button id="loadmore">Load more commits</button></div>
@@ -46,7 +58,7 @@ pre.diff .a{color:var(--add)}pre.diff .d{color:var(--del)}pre.diff .h{color:var(
 const TOKEN='__TOKEN__', PAL=['#2ea043','#388bfd','#a371f7','#d29922','#f0883e','#39c5cf','#db61a2','#7ee787'], LW=16, RH=26
 const $=id=>document.getElementById(id)
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
-const S={repo:'',info:null,commits:[],rows:[],n:300,sel:'',detail:null,patch:null,mark:'',fp:'',query:''}
+const S={hist:[],hi:-1,repo:'',info:null,commits:[],rows:[],n:300,sel:'',detail:null,patch:null,mark:'',fp:'',query:''}
 
 async function call(name,params={},post=false){
   const r=post?await fetch('/api/'+name,{method:'POST',headers:{'x-token':TOKEN,'content-type':'application/json'},body:JSON.stringify(params)})
@@ -115,7 +127,7 @@ function render(){
   }
   if(!vis.length&&!(S.info&&S.info.dirty>0))h='<div class="empty">No commits found.</div>'
   box.innerHTML=h
-  $('more').hidden=S.commits.length<S.n
+  fillJump();$('more').hidden=S.commits.length<S.n
   const i=S.info
   $('info').textContent=i?`${i.root} · ${i.current?'on '+i.current:'detached HEAD'} · ${vis.length}${q?'/'+S.commits.length:''} commits`:''
 }
@@ -125,7 +137,7 @@ function detailHtml(c){
   const m=d.meta||{},files=d.files||[]
   const adds=files.reduce((s,f)=>s+Math.max(f.add,0),0),dels=files.reduce((s,f)=>s+Math.max(f.del,0),0)
   let h=`<div class="detail" data-detail="${d.hash}"><h3>${esc(d.title||'(no message)')}</h3>`
-  if(m.full)h+=`<div class="meta">Commit:  ${esc(m.full)}\nParents: ${m.parents.length?m.parents.map(x=>x.slice(0,7)).join(' '):'(root)'}\nAuthor:  ${esc(m.author)} &lt;${esc(m.email)}&gt;\nDate:    ${esc(m.date)}${m.committer&&m.author!==m.committer?'  (committed by '+esc(m.committer)+')':''}</div>`
+  if(m.full)h+=`<div class="meta">Commit:  ${esc(m.full)}\nParents: ${m.parents.length?m.parents.map(x=>`<a class="lnk" data-goto="${x}">${x.slice(0,7)}</a>`).join(' '):'(root)'}\nAuthor:  ${esc(m.author)} &lt;${esc(m.email)}&gt;\nDate:    ${esc(m.date)}${m.committer&&m.author!==m.committer?'  (committed by '+esc(m.committer)+')':''}</div>`
   if(d.message)h+=`<div class="body">${esc(d.message)}</div>`
   h+=`<div><b>${files.length} file${files.length===1?'':'s'} changed</b> <span style="color:var(--add)">+${adds}</span> <span style="color:var(--del)">−${dels}</span></div><div class="files">`
   for(const f of files)h+=`<div class="file${S.patch&&S.patch.path===f.path?' sel':''}" data-file="${esc(f.path)}"><span class="st-${f.status}">${f.status}</span><span>${esc(f.path)}</span><span class="nums">${f.add<0?'binary':`+${f.add} −${f.del}`}</span></div>`
@@ -156,9 +168,11 @@ async function refresh(keep){
   try{await loadInfo();await loadLog()
     if(S.sel&&S.sel!=='WORKING'&&!S.commits.some(c=>c.hash===S.sel)&&!(S.detail&&S.detail.base))S.sel=''
     if(S.sel)S.detail=await call('commit',{repo:S.repo,hash:S.sel,base:S.detail&&S.detail.base||''})
-    render()}catch(e){S.info=null;S.commits=[];S.layout={rows:[],width:1};render();$('rows').innerHTML=`<div class="empty">${esc(e.message)}</div>`;$('info').textContent=''}
+    remember(S.repo);render()}catch(e){S.info=null;S.commits=[];S.layout={rows:[],width:1};render();$('rows').innerHTML=`<div class="empty">${esc(e.message)}</div>`;$('info').textContent=''}
 }
-async function open(hash,base=''){S.sel=hash;S.patch=null;S.detail=null;render()
+async function open(hash,base='',rec=true){
+  if(rec&&S.hist[S.hi]!==hash+'|'+base){S.hist=S.hist.slice(0,S.hi+1);S.hist.push(hash+'|'+base);S.hi=S.hist.length-1}
+  nav();S.sel=hash;S.patch=null;S.detail=null;render()
   try{S.detail=await call('commit',{repo:S.repo,hash,base});render();document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'})}catch(e){say(e.message,false)}}
 async function act(op,extra={}){try{const r=await call('act',{repo:S.repo,op,hash:S.sel,...extra},true);say(r.message,r.ok);await refresh()}catch(e){say(e.message,false)}}
 
@@ -176,6 +190,7 @@ $('rows').addEventListener('click',async ev=>{
     }
     return act(a,{name:btn.dataset.name,mode:btn.dataset.mode})
   }
+  const g=t.closest('[data-goto]');if(g){jumpTo(g.dataset.goto);return}
   const f=t.closest('.file');if(f){const p=f.dataset.file
     try{const r=await call('diff',{repo:S.repo,hash:S.detail.hash,base:S.detail.base||'',path:p});S.patch={path:p,diff:r.diff||'(no textual changes)'};render()}catch(e){say(e.message,false)}return}
   if(t.closest('.detail'))return
@@ -192,6 +207,46 @@ $('loadmore').onclick=()=>{S.n+=300;refresh()}
 document.addEventListener('keydown',e=>{if(e.key==='r'&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)&&!e.metaKey&&!e.ctrlKey)refresh()})
 setInterval(async()=>{if(document.hidden||!S.repo)return;try{const r=await call('fp',{repo:S.repo});if(r.fp!==S.fp)refresh()}catch{}},4000)
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.repo)refresh()})
+
+function nav(){$('back').disabled=S.hi<=0;$('fwd').disabled=S.hi>=S.hist.length-1}
+function goHist(d){const i=S.hi+d;if(i<0||i>=S.hist.length)return;S.hi=i;const [h,b]=S.hist[i].split('|');open(h,b,false)}
+function jumpTo(hash){if(!S.commits.some(c=>c.hash===hash)){say('That commit is not loaded yet - use "Load more commits"',false);return}S.query='';$('search').value='';open(hash)}
+function headHash(){const c=S.commits.find(c=>c.refs.some(r=>r.startsWith('HEAD')))||S.commits[0];return c&&c.hash}
+function step(d){const vis=visible();if(!vis.length)return
+  let i=vis.findIndex(([c])=>c.hash===S.sel);if(i<0)i=d>0?-1:vis.length
+  const n=Math.max(0,Math.min(vis.length-1,i+d));if(vis[n][0].hash!==S.sel)open(vis[n][0].hash)}
+async function stepFile(d){const files=S.detail&&S.detail.files;if(!files||!files.length)return
+  let i=S.patch?files.findIndex(f=>f.path===S.patch.path):-1;i=Math.max(0,Math.min(files.length-1,i+d))
+  try{const r=await call('diff',{repo:S.repo,hash:S.detail.hash,base:S.detail.base||'',path:files[i].path});S.patch={path:files[i].path,diff:r.diff||'(no textual changes)'};render()
+    document.querySelector('.file.sel')?.scrollIntoView({block:'nearest'})}catch(e){say(e.message,false)}}
+function fillJump(){
+  const map=new Map();for(const c of S.commits)for(const r of c.refs){if(r==='HEAD')continue;map.set(r.replace(/^HEAD -> /,'').replace(/^tag: /,'tag: '),c.hash)}
+  const key=[...map.keys()].join('|');if(S._jk===key)return;S._jk=key
+  const tags=[...map.keys()].filter(k=>k.startsWith('tag: ')),rest=[...map.keys()].filter(k=>!k.startsWith('tag: '))
+  const o=k=>`<option value="${map.get(k)}">${esc(k)}</option>`
+  $('jump').innerHTML='<option value="">Jump to…</option>'+(rest.length?`<optgroup label="Branches">${rest.map(o).join('')}</optgroup>`:'')+(tags.length?`<optgroup label="Tags">${tags.map(o).join('')}</optgroup>`:'')}
+function recents(){let a=[];try{a=JSON.parse(localStorage.getItem('gg-recent')||'[]')}catch{};return a}
+function remember(r){let a=recents().filter(x=>x!==r);a.unshift(r);a=a.slice(0,8);try{localStorage.setItem('gg-recent',JSON.stringify(a))}catch{};$('recent').innerHTML=a.map(x=>`<option value="${esc(x)}">`).join('')}
+$('back').onclick=()=>goHist(-1);$('fwd').onclick=()=>goHist(1)
+$('head').onclick=()=>{const h=headHash();if(h)jumpTo(h)}
+$('jump').onchange=e=>{if(e.target.value)jumpTo(e.target.value);e.target.value=''}
+$('help').onclick=()=>{$('helpbox').hidden=!$('helpbox').hidden}
+document.addEventListener('keydown',e=>{
+  const typing=/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)
+  if(e.key==='Escape'){if(typing)document.activeElement.blur();else if(S.sel){S.sel='';S.detail=null;render()};return}
+  if(e.altKey&&e.key==='ArrowLeft'){goHist(-1);e.preventDefault();return}
+  if(e.altKey&&e.key==='ArrowRight'){goHist(1);e.preventDefault();return}
+  if(typing||e.metaKey||e.ctrlKey)return
+  const k=e.key,h=()=>e.preventDefault()
+  if(k==='ArrowDown'||k==='j'){h();step(1)}else if(k==='ArrowUp'||k==='k'){h();step(-1)}
+  else if(k==='Enter'){if(S.sel){S.sel='';S.detail=null;render()}}
+  else if(k==='Home'){h();const v=visible();if(v.length)open(v[0][0].hash)}
+  else if(k==='End'){h();const v=visible();if(v.length)open(v[v.length-1][0].hash)}
+  else if(k==='h'){const x=headHash();if(x)jumpTo(x)}
+  else if(k===']'){stepFile(1)}else if(k==='['){stepFile(-1)}
+  else if(k==='/'){h();$('search').focus()}
+  else if(k==='?'){$('helpbox').hidden=!$('helpbox').hidden}
+})
 
 const qs=new URLSearchParams(location.search)
 let start=qs.get('repo');if(!start){try{start=localStorage.getItem('gg-repo')}catch{}}

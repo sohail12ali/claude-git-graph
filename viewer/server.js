@@ -16,15 +16,16 @@ const HTML = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8')
 const ENV = {
   ...process.env, LC_ALL: 'C', GIT_TERMINAL_PROMPT: '0',
   GIT_OPTIONAL_LOCKS: '0',     // polling `status` must not take index.lock away from the user's own git commands
-  GIT_LITERAL_PATHSPECS: '1',  // file names are paths, never pathspec magic or globs
   GIT_EDITOR: 'true', GIT_SEQUENCE_EDITOR: 'true', GIT_PAGER: 'cat', GIT_MERGE_AUTOEDIT: 'no',
 }
 // Neutralise user config that would change machine-readable output.
 const BASE = ['-c', 'core.quotepath=off', '-c', 'color.ui=never', '-c', 'log.showSignature=false', '-c', 'diff.noprefix=false']
 
-const git = (repo, args, { timeout = 30000, buffer = false } = {}) =>
+// literal: file names given by the client are paths, never pathspec magic or globs. Not set
+// globally because it breaks `git stash -u`.
+const git = (repo, args, { timeout = 30000, buffer = false, literal = false } = {}) =>
   new Promise(resolve => {
-    execFile('git', [...BASE, ...args], {
+    execFile('git', [...(literal ? ['--literal-pathspecs'] : []), ...BASE, ...args], {
       cwd: repo, maxBuffer: 64 * 1024 * 1024, timeout, env: ENV, encoding: buffer ? 'buffer' : 'utf8',
     }, (err, out, errOut) => resolve({
       code: err ? (typeof err.code === 'number' ? err.code : 1) : 0, out,
@@ -163,7 +164,7 @@ const api = {
     if (file) args.push('--follow')
     args.push(...scope, '--')
     if (file) args.push(file)
-    const r = await git(root, args, { timeout: 60000 })
+    const r = await git(root, args, { timeout: 60000, literal: true })
     if (r.code !== 0) {
       if (/does not have any commits|bad default revision 'HEAD'|ambiguous argument 'HEAD'/.test(r.err)) return [] // no commits yet
       throw new Error(first(r.err) || 'git log failed')
@@ -222,17 +223,17 @@ const api = {
     const U = '-U' + Math.min(Math.max(parseInt(ctx, 10) || 3, 0), 100000)
     let r
     if (hash === 'WORKING') {
-      r = await git(root, ['diff', '--no-ext-diff', '-M', U, 'HEAD', '--', ...paths])
+      r = await git(root, ['diff', '--no-ext-diff', '-M', U, 'HEAD', '--', ...paths], { literal: true })
       if (r.code !== 0 || !r.out) {
         // Untracked file (or a repo with no commits): diff against /dev/null, but only for a
         // path git itself lists as untracked or staged, so this can't read files outside the repo.
-        const ls = await git(root, ['ls-files', '-z', '--others', '--cached', '--exclude-standard', '--', file])
+        const ls = await git(root, ['ls-files', '-z', '--others', '--cached', '--exclude-standard', '--', file], { literal: true })
         if (!ls.out.split('\0').includes(file)) return { diff: r.out || '', truncated: 0 }
         r = await git(root, ['diff', '--no-ext-diff', '--no-index', U, '--', '/dev/null', file])
       }
     } else if (!HASH.test(hash || '')) throw new Error('bad hash')
-    else if (base) { if (!HASH.test(base)) throw new Error('bad base'); r = await git(root, ['diff', '--no-ext-diff', '-M', U, base, hash, '--', ...paths]) }
-    else r = await git(root, ['show', '--no-ext-diff', '--format=', '-m', '--first-parent', '-M', U, hash, '--', ...paths])
+    else if (base) { if (!HASH.test(base)) throw new Error('bad base'); r = await git(root, ['diff', '--no-ext-diff', '-M', U, base, hash, '--', ...paths], { literal: true }) }
+    else r = await git(root, ['show', '--no-ext-diff', '--format=', '-m', '--first-parent', '-M', U, hash, '--', ...paths], { literal: true })
     const lines = r.out.split('\n')
     const MAX = 8000
     return { diff: lines.slice(0, MAX).join('\n'), truncated: Math.max(0, lines.length - MAX) }

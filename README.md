@@ -11,6 +11,15 @@ A mod that adds a **Git Graph** pane beside the chat, in the spirit of the VS Co
 - Mark a commit and compare it with another
 - Actions: copy hash, checkout, cherry-pick, revert, merge, create branch, add tag, fetch, and confirmed soft/mixed/hard reset
 
+The desktop viewer also has:
+
+- Stash list with view, apply, pop and drop; push and pull with ahead/behind counts
+- A banner with Continue / Abort when a merge, rebase, cherry-pick or revert stops on conflicts
+- Search the whole history (Enter in the search box), author and date filters, hide merge commits
+- File history, view a file at any commit, copy a commit or the working changes as a patch
+- Compare any two branches, tags or commits from the branch picker
+- Annotated tags, branches with or without checkout, delete remote branches
+
 Open it with `/git-graph`.
 
 - **Terminal Claude Code:** the graph opens as a pane beside the chat (`r` refreshes, `f` fetches).

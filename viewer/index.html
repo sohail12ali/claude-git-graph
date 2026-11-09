@@ -28,6 +28,9 @@ pre.diff{margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:6px
 pre.diff .a{color:var(--add)}pre.diff .d{color:var(--del)}pre.diff .h{color:var(--hunk)}
 .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}.actions input{width:170px}
 .empty{color:var(--dim);padding:24px 0}
+.ctx{position:fixed;z-index:30;background:var(--bg);border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 28px rgba(0,0,0,.35);padding:4px;min-width:240px;max-width:340px}
+.ctx .it{padding:5px 10px;border-radius:4px;cursor:pointer;display:flex;gap:6px;align-items:center}.ctx .it:hover{background:var(--hover)}.ctx .it.danger{color:var(--del)}.ctx .it.armed{background:var(--del);color:#fff}.ctx .it.dis{opacity:.4;pointer-events:none}
+.ctx .sep{height:1px;background:var(--line);margin:4px 0}.ctx .hd{color:var(--dim);font-size:11px;padding:4px 10px 2px}.ctx input{flex:1;min-width:0}
 a.lnk{color:var(--accent);cursor:pointer;text-decoration:underline}
 </style></head>
 <body>
@@ -41,6 +44,7 @@ a.lnk{color:var(--accent);cursor:pointer;text-decoration:underline}
   <label title="Show remote branches"><input id="remotes" type="checkbox" checked> Remotes</label>
   <input id="search" placeholder="Search message, author, hash, ref">
   <button id="refresh" title="Refresh (r)">Refresh</button>
+  <button id="pull" title="git pull --ff-only">Pull</button>
   <button id="fetch" title="git fetch --all --prune">Fetch</button>
   <button id="help" title="Keyboard shortcuts (?)">?</button>
 </div>
@@ -50,7 +54,8 @@ h       jump to HEAD       Home / End   first / last loaded commit
 ] / [   next / previous file in the commit (shows its diff)
 /       search             r   refresh
 Alt+←   back               Alt+→   forward (history of commits you opened)
-Click a parent hash in the details to walk down the history.</div></div>
+Click a parent hash in the details to walk down the history.
+Right-click a commit, a branch/tag label, or the Uncommitted row for git operations.</div></div>
 <div class="status"><span id="info"></span><span id="msg" class="msg"></span></div>
 <div id="rows" class="rows"></div>
 <div id="more" class="empty" hidden><button id="loadmore">Load more commits</button></div>
@@ -107,7 +112,8 @@ function badges(c){
     else if(r==='HEAD'){cls='head'}
     else if(r.startsWith('tag: ')){cls='tag';label=r.slice(5)}
     else if(i.remote.includes(r))cls='remote'
-    return `<span class="badge ${cls}">${esc(label)}</span>`
+    const kind=r==='HEAD'?'':cls==='tag'?'tag':cls==='remote'?'remote':'local'
+    return `<span class="badge ${cls}"${kind?` data-kind="${kind}" data-name="${esc(label)}"`:''}>${esc(label)}</span>`
   }).join('')
 }
 function visible(){const q=S.query.trim().toLowerCase();return q?S.commits.map((c,i)=>[c,i]).filter(([c])=>`${c.subject} ${c.author} ${c.hash} ${c.refs.join(' ')}`.toLowerCase().includes(q)):S.commits.map((c,i)=>[c,i])}
@@ -247,6 +253,83 @@ document.addEventListener('keydown',e=>{
   else if(k==='/'){h();$('search').focus()}
   else if(k==='?'){$('helpbox').hidden=!$('helpbox').hidden}
 })
+
+// ---- right-click menu ----
+function closeCtx(){const m=$('ctx');if(m)m.remove()}
+function ctxItems(hash,badge){
+  const items=[],add=(label,fn,o={})=>items.push({label,fn,...o}),sep=()=>items.push({sep:1}),hd=t=>items.push({hd:t})
+  const cur=S.info.current
+  if(hash==='WORKING'){
+    add('Stash uncommitted changes',()=>act('stash'))
+    add('Discard all changes (reset --hard HEAD)',()=>act('reset-head'),{danger:true,confirm:true})
+    return items
+  }
+  const c=S.commits.find(x=>x.hash===hash);if(!c)return items
+  if(badge){const {kind,name}=badge.dataset
+    hd(kind==='tag'?'Tag '+name:(kind==='remote'?'Remote branch ':'Branch ')+name)
+    if(kind==='local'){
+      add('Checkout',()=>act('checkout',{name,hash:undefined}),{dis:name===cur})
+      add('Merge into current branch',()=>act('merge',{hash}),{dis:name===cur})
+      add('Rename…',v=>act('rename-branch',{name,newName:v}),{input:'new-name'})
+      add('Push (set upstream to origin)',()=>act('push-branch',{name}))
+      add('Delete branch',()=>act('delete-branch',{name}),{danger:true,confirm:true,dis:name===cur})
+    }else if(kind==='remote'){
+      add('Checkout (track as local branch)',()=>act('checkout-remote',{name}))
+    }else{
+      add('Push tag to origin',()=>act('push-tag',{name}))
+      add('Delete tag',()=>act('delete-tag',{name}),{danger:true,confirm:true})
+    }
+    sep()
+  }
+  hd('Commit '+hash.slice(0,7))
+  add('Checkout (detached)',()=>act('checkout',{hash}))
+  add('Create branch here…',v=>act('branch',{hash,name:v}),{input:'new-branch-name'})
+  add('Add tag here…',v=>act('tag',{hash,name:v}),{input:'tag-name'})
+  sep()
+  add('Cherry-pick',()=>act('cherry-pick',{hash}))
+  add('Revert',()=>act('revert',{hash}))
+  add('Merge into current branch',()=>act('merge',{hash}))
+  add('Rebase current branch onto this',()=>act('rebase',{hash}),{danger:true,confirm:true})
+  sep();hd('Reset current branch to this commit')
+  add('Soft (keep changes staged)',()=>act('reset',{hash,mode:'--soft'}),{danger:true,confirm:true})
+  add('Mixed (keep changes unstaged)',()=>act('reset',{hash,mode:'--mixed'}),{danger:true,confirm:true})
+  add('Hard (discard all changes)',()=>act('reset',{hash,mode:'--hard'}),{danger:true,confirm:true})
+  sep()
+  add('Copy commit hash',async()=>{try{await navigator.clipboard.writeText(hash);say('Copied '+hash.slice(0,7),true)}catch{say(hash,true)}})
+  add('Copy subject',async()=>{try{await navigator.clipboard.writeText(c.subject);say('Copied subject',true)}catch{say(c.subject,true)}})
+  add(S.mark===hash?'Unmark for compare':'Mark for compare',()=>{S.mark=S.mark===hash?'':hash;render()})
+  if(S.mark&&S.mark!==hash)add('Compare with '+S.mark.slice(0,7),()=>open(hash,S.mark))
+  return items
+}
+function showCtx(x,y,items){
+  closeCtx();const m=document.createElement('div');m.id='ctx';m.className='ctx'
+  for(const it of items){
+    const el=document.createElement('div')
+    if(it.sep){el.className='sep'}else if(it.hd){el.className='hd';el.textContent=it.hd}
+    else{
+      el.className='it'+(it.danger?' danger':'')+(it.dis?' dis':'');el.textContent=it.label
+      el.onclick=ev=>{ev.stopPropagation()
+        if(it.input&&!el.dataset.open){el.dataset.open=1;el.className='it';el.onclick=null;el.textContent=it.label.replace('…',':')+' '
+          const inp=document.createElement('input');inp.placeholder=it.input;const ok=document.createElement('button');ok.textContent='OK'
+          const go=()=>{const v=inp.value.trim();if(!v)return;closeCtx();it.fn(v)};ok.onclick=go;inp.onkeydown=e=>{if(e.key==='Enter')go();e.stopPropagation()}
+          el.append(inp,ok);inp.focus();return}
+        if(it.confirm&&!it.armed){it.armed=true;el.classList.add('armed');el.textContent='Click again to confirm: '+it.label;return}
+        closeCtx();it.fn()}
+    }
+    m.appendChild(el)
+  }
+  document.body.appendChild(m)
+  m.style.left=Math.max(4,Math.min(x,innerWidth-m.offsetWidth-8))+'px'
+  m.style.top=Math.max(4,Math.min(y,innerHeight-m.offsetHeight-8))+'px'
+}
+$('rows').addEventListener('contextmenu',ev=>{
+  const row=ev.target.closest('.row');if(!row||!S.info)return
+  ev.preventDefault();showCtx(ev.clientX,ev.clientY,ctxItems(row.dataset.h,ev.target.closest('.badge[data-kind]')))
+})
+document.addEventListener('click',e=>{if(!e.target.closest('#ctx'))closeCtx()})
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCtx()},true)
+addEventListener('scroll',closeCtx,{passive:true});addEventListener('resize',closeCtx)
+$('pull').onclick=()=>{say('Pulling…');act('pull')}
 
 const qs=new URLSearchParams(location.search)
 let start=qs.get('repo');if(!start){try{start=localStorage.getItem('gg-repo')}catch{}}

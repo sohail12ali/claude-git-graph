@@ -130,7 +130,7 @@ const api = {
     const lines = r.out.split('\n')
     return { diff: lines.slice(0, 2000).join('\n') + (lines.length > 2000 ? `\n… ${lines.length - 2000} more lines` : '') }
   },
-  async act({ repo, op, hash, name, mode }) {
+  async act({ repo, op, hash, name, newName, mode }) {
     const root = await resolveRepo(repo)
     const okName = n => typeof n === 'string' && NAME.test(n)
     const okHash = h => typeof h === 'string' && HASH.test(h)
@@ -145,6 +145,14 @@ const api = {
       case 'reset': if (!okHash(hash) || !['--soft', '--mixed', '--hard'].includes(mode)) throw new Error('bad reset'); args = ['reset', mode, hash]; label = 'Reset ' + mode.slice(2); break
       case 'delete-branch': if (!okName(name)) throw new Error('bad name'); args = ['branch', '-d', name]; label = 'Delete branch'; break
       case 'delete-tag': if (!okName(name)) throw new Error('bad name'); args = ['tag', '-d', name]; label = 'Delete tag'; break
+      case 'rebase': if (!okHash(hash)) throw new Error('bad hash'); args = ['rebase', hash]; label = 'Rebase'; break
+      case 'push-branch': if (!okName(name)) throw new Error('bad name'); args = ['push', '--set-upstream', 'origin', name]; label = 'Push ' + name; break
+      case 'push-tag': if (!okName(name)) throw new Error('bad name'); args = ['push', 'origin', 'refs/tags/' + name]; label = 'Push tag ' + name; break
+      case 'rename-branch': if (!okName(name) || !okName(newName)) throw new Error('bad name'); args = ['branch', '-m', name, newName]; label = 'Rename branch'; break
+      case 'checkout-remote': if (!okName(name)) throw new Error('bad name'); args = ['checkout', '--track', name]; label = 'Checkout ' + name; break
+      case 'stash': args = ['stash', 'push', '-u', '-m', 'Git Graph stash']; label = 'Stash'; break
+      case 'reset-head': args = ['reset', '--hard', 'HEAD']; label = 'Discard changes'; break
+      case 'pull': args = ['pull', '--ff-only']; label = 'Pull'; break
       case 'fetch': args = ['fetch', '--all', '--prune']; label = 'Fetch'; break
       default: throw new Error('unknown action')
     }

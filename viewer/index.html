@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Git Graph</title>
+<style>
+:root{--bg:#fff;--fg:#1f2328;--dim:#6e7781;--line:#d0d7de;--hover:#f3f4f6;--sel:#ddf4ff;--panel:#f6f8fa;--add:#1a7f37;--del:#cf222e;--hunk:#0969da;--warn:#9a6700;--btn:#fff;--accent:#0969da}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--fg:#e6edf3;--dim:#8b949e;--line:#30363d;--hover:#161b22;--sel:#12263f;--panel:#161b22;--add:#3fb950;--del:#f85149;--hunk:#58a6ff;--warn:#d29922;--btn:#21262d;--accent:#58a6ff}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{padding:0 16px 24px}
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 8px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input,select,button{font:inherit;color:var(--fg);background:var(--btn);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+button{cursor:pointer}button:hover{border-color:var(--accent)}button.danger{color:var(--del)}button.armed{background:var(--del);color:#fff;border-color:var(--del)}
+#repo{flex:1 1 260px;min-width:0}#search{flex:1 1 160px;min-width:0}
+.status{color:var(--dim);padding:6px 0;display:flex;gap:12px;flex-wrap:wrap}.msg.ok{color:var(--add)}.msg.bad{color:var(--del)}
+.rows{margin-top:4px}
+.row{display:flex;align-items:center;height:26px;cursor:pointer;white-space:nowrap;border-radius:4px}
+.row:hover{background:var(--hover)}.row.sel{background:var(--sel)}
+.row svg{flex:none;display:block}
+.subj{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;padding-right:10px}
+.who,.date,.hash{flex:none;color:var(--dim);padding-left:10px}.who{width:130px;overflow:hidden;text-overflow:ellipsis}.date{width:84px}.hash{width:66px;font-family:ui-monospace,Menlo,monospace}
+.badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:10px;font-size:11px;line-height:17px;border:1px solid var(--line);vertical-align:1px}
+.badge.head{background:var(--accent);color:#fff;border-color:var(--accent)}.badge.tag{color:var(--warn);border-color:var(--warn)}.badge.remote{color:var(--dim)}.badge.local{border-color:var(--accent);color:var(--accent)}
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:8px;margin:4px 0 10px;padding:12px 14px}
+.detail h3{margin:0 0 6px;font-size:14px}.meta{color:var(--dim);font-family:ui-monospace,Menlo,monospace;font-size:12px;white-space:pre-wrap;margin-bottom:6px}
+.body{white-space:pre-wrap;margin:6px 0 10px}.files{margin:6px 0}
+.file{display:flex;gap:8px;padding:2px 6px;border-radius:4px;cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-size:12px}.file:hover{background:var(--hover)}.file.sel{background:var(--sel)}
+.st-A,.st-U{color:var(--add)}.st-D{color:var(--del)}.st-M,.st-R{color:var(--warn)}.nums{color:var(--dim);margin-left:auto}
+pre.diff{margin:8px 0;padding:8px;border:1px solid var(--line);border-radius:6px;overflow:auto;max-height:420px;font:12px/1.45 ui-monospace,Menlo,monospace;background:var(--bg)}
+pre.diff .a{color:var(--add)}pre.diff .d{color:var(--del)}pre.diff .h{color:var(--hunk)}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}.actions input{width:170px}
+.empty{color:var(--dim);padding:24px 0}
+</style></head>
+<body>
+<div class="bar">
+  <input id="repo" placeholder="Path of a git folder" spellcheck="false">
+  <button id="open">Open</button>
+  <select id="branch" title="Branch"></select>
+  <label title="Show remote branches"><input id="remotes" type="checkbox" checked> Remotes</label>
+  <input id="search" placeholder="Search message, author, hash, ref">
+  <button id="refresh" title="Refresh (r)">Refresh</button>
+  <button id="fetch" title="git fetch --all --prune">Fetch</button>
+</div>
+<div class="status"><span id="info"></span><span id="msg" class="msg"></span></div>
+<div id="rows" class="rows"></div>
+<div id="more" class="empty" hidden><button id="loadmore">Load more commits</button></div>
+<script>
+const TOKEN='__TOKEN__', PAL=['#2ea043','#388bfd','#a371f7','#d29922','#f0883e','#39c5cf','#db61a2','#7ee787'], LW=16, RH=26
+const $=id=>document.getElementById(id)
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))
+const S={repo:'',info:null,commits:[],rows:[],n:300,sel:'',detail:null,patch:null,mark:'',fp:'',query:''}
+
+async function call(name,params={},post=false){
+  const r=post?await fetch('/api/'+name,{method:'POST',headers:{'x-token':TOKEN,'content-type':'application/json'},body:JSON.stringify(params)})
+    :await fetch('/api/'+name+'?'+new URLSearchParams(params),{headers:{'x-token':TOKEN}})
+  const j=await r.json(); if(j.error) throw new Error(j.error); return j
+}
+function say(t,ok){const m=$('msg');m.textContent=t||'';m.className='msg '+(ok===undefined?'':ok?'ok':'bad')}
+
+function layout(commits){
+  let lanes=[],colors=[],next=0;const rows=[];let max=1
+  for(const c of commits){
+    const before=lanes.slice();let col=lanes.indexOf(c.hash)
+    if(col<0){col=lanes.indexOf(null);if(col<0)col=lanes.length;lanes[col]=c.hash;colors[col]=next++%PAL.length;before[col]=null}
+    const hits=[];before.forEach((h,i)=>{if(h===c.hash)hits.push(i)})
+    const row={col,color:colors[col],top:hits.map(i=>({i,color:colors[i]})),pass:[],out:[]}
+    for(const i of hits)if(i!==col)lanes[i]=null
+    lanes[col]=c.parents[0]??null
+    if(c.parents[0])row.out.push({to:col,color:colors[col]})
+    for(const p of c.parents.slice(1)){
+      let j=lanes.indexOf(p)
+      if(j<0){j=lanes.indexOf(null);if(j<0)j=lanes.length;lanes[j]=p;colors[j]=next++%PAL.length}
+      row.out.push({to:j,color:colors[j]})
+    }
+    before.forEach((h,i)=>{if(h!==null&&h!==c.hash&&lanes[i]===h)row.pass.push({i,color:colors[i]})})
+    while(lanes.length&&lanes[lanes.length-1]===null)lanes.pop()
+    max=Math.max(max,before.length,lanes.length,col+1)
+    for(const o of row.out)max=Math.max(max,o.to+1)
+    rows.push(row)
+  }
+  return {rows,width:max}
+}
+const X=i=>i*LW+LW/2
+function graphSvg(r,width,head){
+  const w=width*LW,m=RH/2,p=[]
+  for(const t of r.top)p.push(t.i===r.col?`<path d="M${X(t.i)} 0V${m}" stroke="${PAL[t.color]}"/>`:`<path d="M${X(t.i)} 0C${X(t.i)} ${m} ${X(r.col)} 0 ${X(r.col)} ${m}" stroke="${PAL[t.color]}"/>`)
+  for(const s of r.pass)p.push(`<path d="M${X(s.i)} 0V${RH}" stroke="${PAL[s.color]}"/>`)
+  for(const o of r.out)p.push(o.to===r.col?`<path d="M${X(r.col)} ${m}V${RH}" stroke="${PAL[o.color]}"/>`:`<path d="M${X(r.col)} ${m}C${X(r.col)} ${RH} ${X(o.to)} ${m} ${X(o.to)} ${RH}" stroke="${PAL[o.color]}"/>`)
+  p.push(`<circle cx="${X(r.col)}" cy="${m}" r="${head?5.5:4.5}" fill="${PAL[r.color]}" ${head?'stroke="var(--fg)" stroke-width="2"':'stroke="var(--bg)" stroke-width="1.5"'}/>`)
+  return `<svg width="${w}" height="${RH}" fill="none" stroke-width="2" style="min-width:${w}px">${p.join('')}</svg>`
+}
+function badges(c){
+  const i=S.info||{local:[],remote:[],current:''}
+  return c.refs.map(r=>{
+    let cls='local',label=r,isHead=false
+    if(r.startsWith('HEAD -> ')){label=r.slice(8);cls='head';isHead=true}
+    else if(r==='HEAD'){cls='head'}
+    else if(r.startsWith('tag: ')){cls='tag';label=r.slice(5)}
+    else if(i.remote.includes(r))cls='remote'
+    return `<span class="badge ${cls}">${esc(label)}</span>`
+  }).join('')
+}
+function visible(){const q=S.query.trim().toLowerCase();return q?S.commits.map((c,i)=>[c,i]).filter(([c])=>`${c.subject} ${c.author} ${c.hash} ${c.refs.join(' ')}`.toLowerCase().includes(q)):S.commits.map((c,i)=>[c,i])}
+
+function render(){
+  const box=$('rows');const q=S.query.trim()
+  const lay=S.layout,vis=visible();let h=''
+  if(S.info&&S.info.dirty>0&&!q){
+    const c0=lay.rows[0]?lay.rows[0].col:0,m=RH/2
+    h+=`<div class="row${S.sel==='WORKING'?' sel':''}" data-h="WORKING"><svg width="${lay.width*LW}" height="${RH}" fill="none" stroke-width="2" style="min-width:${lay.width*LW}px"><path d="M${X(c0)} ${m}V${RH}" stroke="var(--dim)" stroke-dasharray="3 3"/><circle cx="${X(c0)}" cy="${m}" r="4.5" fill="var(--bg)" stroke="var(--dim)"/></svg><span class="subj"><b>Uncommitted changes</b> <span style="color:var(--dim)">(${S.info.dirty} files)</span></span></div>`
+    if(S.sel==='WORKING')h+=detailHtml()
+  }
+  for(const [c,i] of vis){
+    const r=lay.rows[i],head=c.refs.some(x=>x.startsWith('HEAD'))
+    h+=`<div class="row${c.hash===S.sel?' sel':''}" data-h="${c.hash}">${q?'':graphSvg(r,lay.width,head)}<span class="subj" title="${esc(c.subject)}">${esc(c.subject)}${badges(c)}</span><span class="who" title="${esc(c.author)}">${esc(c.author)}</span><span class="date" title="${esc(c.when)}">${esc(c.date)}</span><span class="hash">${c.hash.slice(0,7)}</span></div>`
+    if(c.hash===S.sel)h+=detailHtml(c)
+  }
+  if(!vis.length&&!(S.info&&S.info.dirty>0))h='<div class="empty">No commits found.</div>'
+  box.innerHTML=h
+  $('more').hidden=S.commits.length<S.n
+  const i=S.info
+  $('info').textContent=i?`${i.root} · ${i.current?'on '+i.current:'detached HEAD'} · ${vis.length}${q?'/'+S.commits.length:''} commits`:''
+}
+
+function detailHtml(c){
+  const d=S.detail;if(!d||d.hash!==S.sel)return '<div class="detail">Loading…</div>'
+  const m=d.meta||{},files=d.files||[]
+  const adds=files.reduce((s,f)=>s+Math.max(f.add,0),0),dels=files.reduce((s,f)=>s+Math.max(f.del,0),0)
+  let h=`<div class="detail" data-detail="${d.hash}"><h3>${esc(d.title||'(no message)')}</h3>`
+  if(m.full)h+=`<div class="meta">Commit:  ${esc(m.full)}\nParents: ${m.parents.length?m.parents.map(x=>x.slice(0,7)).join(' '):'(root)'}\nAuthor:  ${esc(m.author)} &lt;${esc(m.email)}&gt;\nDate:    ${esc(m.date)}${m.committer&&m.author!==m.committer?'  (committed by '+esc(m.committer)+')':''}</div>`
+  if(d.message)h+=`<div class="body">${esc(d.message)}</div>`
+  h+=`<div><b>${files.length} file${files.length===1?'':'s'} changed</b> <span style="color:var(--add)">+${adds}</span> <span style="color:var(--del)">−${dels}</span></div><div class="files">`
+  for(const f of files)h+=`<div class="file${S.patch&&S.patch.path===f.path?' sel':''}" data-file="${esc(f.path)}"><span class="st-${f.status}">${f.status}</span><span>${esc(f.path)}</span><span class="nums">${f.add<0?'binary':`+${f.add} −${f.del}`}</span></div>`
+  h+='</div>'
+  if(S.patch&&files.some(f=>f.path===S.patch.path))h+=`<pre class="diff">${S.patch.diff.split('\n').map(l=>`<span class="${l.startsWith('+')&&!l.startsWith('+++')?'a':l.startsWith('-')&&!l.startsWith('---')?'d':l.startsWith('@@')?'h':''}">${esc(l)}</span>`).join('\n')}</pre>`
+  if(d.hash!=='WORKING'&&c){
+    const cur=S.info.current,locals=S.info.local.filter(b=>c.refs.some(r=>r===b||r==='HEAD -> '+b))
+    const tags=c.refs.filter(r=>r.startsWith('tag: ')).map(r=>r.slice(5))
+    h+=`<div class="actions"><button data-a="copy">Copy hash</button><button data-a="checkout">Checkout (detached)</button>`
+    for(const b of locals)h+=`<button data-a="checkout-b" data-name="${esc(b)}"${b===cur?' disabled':''}>Checkout ${esc(b)}</button>`
+    h+=`<button data-a="cherry-pick">Cherry-pick</button><button data-a="revert">Revert</button><button data-a="merge">Merge into current</button>`
+    h+=`<button data-a="mark">${S.mark===d.hash?'Marked ✓':'Mark for compare'}</button>`
+    if(S.mark&&S.mark!==d.hash)h+=`<button data-a="compare">Compare with ${S.mark.slice(0,7)}</button>`
+    h+=`</div><div class="actions"><button class="danger" data-a="reset" data-mode="--soft">Reset soft</button><button class="danger" data-a="reset" data-mode="--mixed">Reset mixed</button><button class="danger" data-a="reset" data-mode="--hard">Reset hard</button>`
+    for(const b of locals.filter(b=>b!==cur))h+=`<button class="danger" data-a="delete-branch" data-name="${esc(b)}">Delete ${esc(b)}</button>`
+    for(const t of tags)h+=`<button class="danger" data-a="delete-tag" data-name="${esc(t)}">Delete tag ${esc(t)}</button>`
+    h+=`</div><div class="actions"><input id="newbranch" placeholder="new-branch-name"><button data-a="branch">Create branch here</button><input id="newtag" placeholder="tag-name"><button data-a="tag">Add tag here</button></div>`
+  }
+  return h+'</div>'
+}
+
+async function loadInfo(){S.info=await call('info',{repo:S.repo});S.repo=S.info.root;S.fp=S.info.fp;$('repo').value=S.repo
+  const sel=$('branch'),cur=sel.value,rm=$('remotes').checked
+  sel.innerHTML='<option value="">All branches</option>'+S.info.local.concat(rm?S.info.remote:[]).map(b=>`<option>${esc(b)}</option>`).join('')
+  sel.value=[...sel.options].some(o=>o.value===cur)?cur:''}
+async function loadLog(){S.commits=await call('log',{repo:S.repo,branch:$('branch').value,remotes:$('remotes').checked?'1':'0',n:S.n});S.layout=layout(S.commits)}
+async function refresh(keep){
+  try{await loadInfo();await loadLog()
+    if(S.sel&&S.sel!=='WORKING'&&!S.commits.some(c=>c.hash===S.sel)&&!(S.detail&&S.detail.base))S.sel=''
+    if(S.sel)S.detail=await call('commit',{repo:S.repo,hash:S.sel,base:S.detail&&S.detail.base||''})
+    render()}catch(e){S.info=null;S.commits=[];S.layout={rows:[],width:1};render();$('rows').innerHTML=`<div class="empty">${esc(e.message)}</div>`;$('info').textContent=''}
+}
+async function open(hash,base=''){S.sel=hash;S.patch=null;S.detail=null;render()
+  try{S.detail=await call('commit',{repo:S.repo,hash,base});render();document.querySelector('.row.sel')?.scrollIntoView({block:'nearest'})}catch(e){say(e.message,false)}}
+async function act(op,extra={}){try{const r=await call('act',{repo:S.repo,op,hash:S.sel,...extra},true);say(r.message,r.ok);await refresh()}catch(e){say(e.message,false)}}
+
+$('rows').addEventListener('click',async ev=>{
+  const t=ev.target
+  const btn=t.closest('button[data-a]')
+  if(btn){const a=btn.dataset.a
+    if(a==='copy'){try{await navigator.clipboard.writeText(S.sel);say('Copied '+S.sel.slice(0,7),true)}catch{say(S.sel,true)}return}
+    if(a==='mark'){S.mark=S.mark===S.sel?'':S.sel;render();return}
+    if(a==='compare'){open(S.sel,S.mark);return}
+    if(a==='checkout-b')return act('checkout',{name:btn.dataset.name,hash:undefined})
+    if(a==='branch'||a==='tag'){const v=$(a==='branch'?'newbranch':'newtag').value.trim();if(!v)return say('Enter a name first',false);return act(a,{name:v})}
+    if(btn.classList.contains('danger')){ // two-step confirm
+      if(!btn.classList.contains('armed')){btn.classList.add('armed');const o=btn.textContent;btn.textContent='Confirm: '+(a==='reset'&&btn.dataset.mode==='--hard'?'discards uncommitted work':o);setTimeout(()=>{btn.classList.remove('armed');btn.textContent=o},4000);return}
+    }
+    return act(a,{name:btn.dataset.name,mode:btn.dataset.mode})
+  }
+  const f=t.closest('.file');if(f){const p=f.dataset.file
+    try{const r=await call('diff',{repo:S.repo,hash:S.detail.hash,base:S.detail.base||'',path:p});S.patch={path:p,diff:r.diff||'(no textual changes)'};render()}catch(e){say(e.message,false)}return}
+  if(t.closest('.detail'))return
+  const row=t.closest('.row');if(row){const h=row.dataset.h;if(S.sel===h){S.sel='';S.detail=null;render()}else open(h)}
+})
+$('open').onclick=()=>{S.repo=$('repo').value.trim();S.sel='';S.detail=null;S.patch=null;S.n=300;try{localStorage.setItem('gg-repo',S.repo)}catch{};refresh()}
+$('repo').addEventListener('keydown',e=>{if(e.key==='Enter')$('open').click()})
+$('branch').onchange=()=>refresh()
+$('remotes').onchange=async()=>{$('branch').value='';await refresh()}
+$('search').addEventListener('input',e=>{S.query=e.target.value;render()})
+$('refresh').onclick=()=>{say('');refresh()}
+$('fetch').onclick=()=>{say('Fetching…');act('fetch')}
+$('loadmore').onclick=()=>{S.n+=300;refresh()}
+document.addEventListener('keydown',e=>{if(e.key==='r'&&!/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)&&!e.metaKey&&!e.ctrlKey)refresh()})
+setInterval(async()=>{if(document.hidden||!S.repo)return;try{const r=await call('fp',{repo:S.repo});if(r.fp!==S.fp)refresh()}catch{}},4000)
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.repo)refresh()})
+
+const qs=new URLSearchParams(location.search)
+let start=qs.get('repo');if(!start){try{start=localStorage.getItem('gg-repo')}catch{}}
+S.layout={rows:[],width:1}
+if(start){S.repo=start;$('repo').value=start;refresh()}else $('rows').innerHTML='<div class="empty">Enter the path of a git folder above.</div>'
+</script></body></html>

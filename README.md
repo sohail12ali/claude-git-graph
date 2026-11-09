@@ -11,7 +11,10 @@ A mod that adds a **Git Graph** pane beside the chat, in the spirit of the VS Co
 - Mark a commit and compare it with another
 - Actions: copy hash, checkout, cherry-pick, revert, merge, create branch, add tag, fetch, and confirmed soft/mixed/hard reset
 
-Open it with `/git-graph`; it also opens at session start. Press `r` to refresh and `f` to fetch.
+Open it with `/git-graph`.
+
+- **Terminal Claude Code:** the graph opens as a pane beside the chat (`r` refreshes, `f` fetches).
+- **Claude desktop app** (no mod panes): `/git-graph` starts a small local viewer (`viewer/`, plain Node.js, no dependencies, bound to 127.0.0.1) and prints a link for the folder the chat is working in. Open it in the app's Browser pane. It has the same features, with a drawn graph.
 
 ## Install
 

@@ -205,10 +205,27 @@ export const register: Register = on => {
     return next(e)
   })
 
+  let viewerStarted = false
   on('command.run', { command: 'git-graph' }, async $ => {
-    await $.ui.open({ id: PANE, title: 'Git Graph' })
+    const opened = await $.ui.open({ id: PANE, title: 'Git Graph' })
     void refresh($).catch(() => {})
-    return { text: 'Git Graph pane opened.' }
+    if (opened?.isPlaced) return { text: 'Git Graph pane opened.' }
+    // This surface seats no mod panes: serve the same graph as a local web page.
+    const cwd: string = await $.session.cwd()
+    if (!viewerStarted) {
+      viewerStarted = true
+      void (async () => {
+        try {
+          for await (const _ of $.process.spawn({ argv: ['node', `${$.plugin.root}/viewer/server.js`], cwd })) void _
+        } catch {}
+        viewerStarted = false
+      })()
+    }
+    const url = `http://127.0.0.1:47770/?repo=${encodeURIComponent(cwd)}`
+    return { text: `Git Graph viewer for ${cwd}:
+${url}
+
+Open it in the Browser pane (or any browser on this computer). It needs Node.js.` }
   })
 
   // Commits, checkouts and merges usually run through Bash: redraw afterwards.

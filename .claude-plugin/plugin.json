@@ -1,0 +1,8 @@
+{
+  "name": "git-graph",
+  "version": "0.2.0",
+  "description": "Git Graph pane for Claude Code: commit graph, branches, tags, commit details, diffs, search, compare and common git actions",
+  "license": "MIT",
+  "author": { "name": "Noble Wave" },
+  "types": "./types/index.d.ts"
+}

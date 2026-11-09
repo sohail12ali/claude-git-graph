@@ -1,0 +1,5 @@
+{
+  "name": "git-graph-marketplace",
+  "owner": { "name": "Noble Wave" },
+  "plugins": [{ "name": "git-graph", "source": "./" }]
+}

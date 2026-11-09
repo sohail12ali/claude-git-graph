@@ -8,7 +8,10 @@
 body{padding:0 16px 24px}
 .bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 8px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 input,select,button{font:inherit;color:var(--fg);background:var(--btn);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
-button{cursor:pointer}button:hover{border-color:var(--accent)}button.danger{color:var(--del)}button.armed{background:var(--del);color:#fff;border-color:var(--del)}
+button{cursor:pointer}button:hover{border-color:var(--accent)}.ib{display:inline-flex;align-items:center;justify-content:center;width:30px;height:28px;padding:0}
+.ib svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+button:disabled{opacity:.4;cursor:default}button:disabled:hover{border-color:var(--line)}
+button.danger{color:var(--del)}button.armed{background:var(--del);color:#fff;border-color:var(--del)}
 #repo{flex:1 1 260px;min-width:0}#search{flex:1 1 160px;min-width:0}
 .status{color:var(--dim);padding:6px 0;display:flex;gap:12px;flex-wrap:wrap}.msg.ok{color:var(--add)}.msg.bad{color:var(--del)}
 .rows{margin-top:4px}
@@ -73,18 +76,18 @@ a.lnk{color:var(--accent);cursor:pointer;text-decoration:underline}
 </style></head>
 <body>
 <div class="bar">
-  <button id="back" title="Back (Alt+←)" disabled>←</button><button id="fwd" title="Forward (Alt+→)" disabled>→</button>
+  <button id="back" class="ib" title="Back (Alt+←)" aria-label="Back" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button><button id="fwd" class="ib" title="Forward (Alt+→)" aria-label="Forward" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
   <input id="repo" list="recent" placeholder="Path of a git folder" spellcheck="false"><datalist id="recent"></datalist>
-  <button id="open">Open</button>
-  <button id="head" title="Jump to HEAD (h)">HEAD</button>
+  <button id="open" class="ib" title="Open this folder" aria-label="Open folder"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg></button>
+  <button id="head" class="ib" title="Jump to HEAD (h)" aria-label="Jump to HEAD"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
   <select id="jump" title="Jump to a branch or tag"><option value="">Jump to…</option></select>
   <span class="brwrap"><button id="brbtn" title="Choose which branches to show">All branches ▾</button><div id="brpop" hidden></div></span>
   <label title="Show remote branches"><input id="remotes" type="checkbox" checked> Remotes</label>
   <input id="search" placeholder="Search message, author, hash, ref">
-  <button id="refresh" title="Refresh (r)">Refresh</button>
-  <button id="pull" title="git pull --ff-only">Pull</button>
-  <button id="fetch" title="git fetch --all --prune">Fetch</button>
-  <button id="help" title="Keyboard shortcuts (?)">?</button>
+  <button id="refresh" class="ib" title="Refresh (r)" aria-label="Refresh"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></button>
+  <button id="pull" class="ib" title="Pull (git pull --ff-only)" aria-label="Pull"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/></svg></button>
+  <button id="fetch" class="ib" title="Fetch all remotes (git fetch --all --prune)" aria-label="Fetch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 13v8"/><path d="m8 17 4 4 4-4"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg></button>
+  <button id="help" class="ib" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></button>
 </div>
 <div id="helpbox" class="detail" hidden><b>Keyboard</b><div class="meta">↓ / j   next commit        ↑ / k   previous commit
 Enter   open / close details   Esc   close details
